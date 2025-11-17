@@ -1,0 +1,86 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Playwright
+playwright/.auth/
+test-results/
+playwright-report/
+.playwright/
+
+# Chrome/Browser
+chrome/
+chromium/
+browsers/
+*.crx
+
+# Data Sensitive - PENTING!
+akun/
+akun/*.xlsx
+akun/*.xls
+akun/*.csv
+*.xlsx
+*.xls
+!template.xlsx
+
+# Results/Output
+results/
+*.log
+logs/
+*.sqlite
+*.db
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+config.local.py
+secrets.py
+
+# OS
+Thumbs.db
+Desktop.ini
+.Spotlight-V100
+.Trashes
+
+# Temporary files
+*.tmp
+*.temp
+~$*.xlsx
+~$*.xls
