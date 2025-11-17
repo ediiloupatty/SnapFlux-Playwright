@@ -1,0 +1,14 @@
+# Core Automation
+playwright==1.40.0
+openpyxl==3.1.2
+python-dateutil==2.8.2
+
+# GUI Framework
+eel==0.16.0
+
+# Utilities
+Pillow==10.1.0
+
+# Optional (jika belum terinstall)
+setuptools>=65.5.0
+wheel>=0.38.0
