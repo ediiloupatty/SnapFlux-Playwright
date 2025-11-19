@@ -190,7 +190,7 @@ async function loadAccounts() {
   const fileName = select.value;
 
   if (!fileName) {
-    alert("Pilih file Excel terlebih dahulu!");
+    showAlert("Pilih file Excel terlebih dahulu!", 'warning');
     return;
   }
 
@@ -210,15 +210,19 @@ async function loadAccounts() {
 
       logMessage(`✅ ${result.message}`, "success");
     } else {
-      alert(`Error: ${result.message}`);
+      showAlert(result.message, 'error');
       logMessage(`❌ ${result.message}`, "error");
     }
   } catch (error) {
     console.error("Error loading accounts:", error);
     logMessage("❌ Gagal memuat akun dari file", "error");
-    alert("Error loading accounts: " + error);
+    showAlert("Terjadi kesalahan saat memuat akun: " + error, 'error');
   }
 }
+
+// ============================================
+// ACCOUNT RENDERING
+// ============================================
 
 // ============================================
 // ACCOUNT RENDERING
@@ -245,30 +249,29 @@ function renderAccounts() {
   accounts.forEach((account) => {
     const accountDiv = document.createElement("div");
     accountDiv.id = `account-${account.id}`;
-    accountDiv.className = "account-item";
+    accountDiv.className = "account-list-item"; // Changed class
 
     accountDiv.innerHTML = `
-            <div class="account-info">
-                <input
-                    type="checkbox"
-                    id="check-${account.id}"
-                    class="account-checkbox"
-                    checked
+            <label class="flex items-center gap-3 cursor-pointer w-full">
+                <input 
+                    type="checkbox" 
+                    id="check-${account.id}" 
+                    class="account-checkbox" 
+                    checked 
                     onchange="updateStatistics()"
                 >
-                <div class="account-details">
+                <div class="account-info">
                     <div class="account-name">${account.nama}</div>
-                    <div class="account-username">${account.username}</div>
                 </div>
-            </div>
-            <div class="account-status">
-                <div class="mini-progress">
-                    <div id="progress-${account.id}" class="mini-progress-fill" style="width: 0%"></div>
+                
+                <div class="flex items-center gap-2 ml-auto">
+                     <div id="indicator-${account.id}" class="account-status-indicator"></div>
+                     <span id="status-${account.id}" class="text-xs font-bold text-muted" style="min-width: 60px; text-align: right;">Menunggu</span>
                 </div>
-                <span id="status-${account.id}" class="status-badge-small status-waiting">
-                    <i class="fas fa-clock"></i>
-                    Menunggu
-                </span>
+            </label>
+            
+            <div class="absolute bottom-0 left-0 w-full h-0.5 bg-gray-100">
+                <div id="progress-${account.id}" class="h-full bg-indigo-500 transition-all duration-300" style="width: 0%"></div>
             </div>
         `;
 
@@ -497,10 +500,15 @@ function resetAccountStatuses() {
   accounts.forEach((account) => {
     const statusBadge = document.getElementById(`status-${account.id}`);
     const progressBar = document.getElementById(`progress-${account.id}`);
+    const indicator = document.getElementById(`indicator-${account.id}`);
 
     if (statusBadge) {
-      statusBadge.className = "status-badge status-waiting";
-      statusBadge.innerHTML = '<i class="fas fa-clock mr-1"></i>Menunggu';
+      statusBadge.textContent = "Menunggu";
+      statusBadge.className = "text-xs font-bold text-muted";
+    }
+
+    if (indicator) {
+      indicator.className = "account-status-indicator";
     }
 
     if (progressBar) {
@@ -523,61 +531,66 @@ function update_account_status(accountId, status, progress) {
 
   const statusBadge = document.getElementById(`status-${accountId}`);
   const progressBar = document.getElementById(`progress-${accountId}`);
+  const indicator = document.getElementById(`indicator-${accountId}`);
   const accountRow = document.getElementById(`account-${accountId}`);
 
   if (progressBar) {
     progressBar.style.width = `${progress}%`;
   }
 
-  if (statusBadge) {
-    let icon, text, className, statusText;
+  if (statusBadge && indicator) {
+    let text, colorClass, statusText, indicatorClass;
+
+    // Reset classes
+    indicator.className = "account-status-indicator";
 
     switch (status) {
       case "processing":
-        icon = "fa-spinner fa-spin";
         text = "Proses";
-        className = "status-processing";
+        colorClass = "text-indigo-500";
+        indicatorClass = "processing";
         statusText = "🔄 Sedang login dan mengambil data...";
         break;
       case "login":
-        icon = "fa-spinner fa-spin";
         text = "Login";
-        className = "status-processing";
+        colorClass = "text-indigo-500";
+        indicatorClass = "processing";
         statusText = "🔐 Melakukan login ke akun...";
         break;
       case "fetching":
-        icon = "fa-spinner fa-spin";
         text = "Fetching";
-        className = "status-processing";
+        colorClass = "text-indigo-500";
+        indicatorClass = "processing";
         statusText = "📊 Mengambil data transaksi...";
         break;
       case "saving":
-        icon = "fa-spinner fa-spin";
         text = "Saving";
-        className = "status-processing";
+        colorClass = "text-indigo-500";
+        indicatorClass = "processing";
         statusText = "💾 Menyimpan data ke Excel...";
         break;
       case "done":
-        icon = "fa-check-circle";
         text = "Selesai";
-        className = "status-done";
+        colorClass = "text-green-500";
+        indicatorClass = "done";
         statusText = "✅ Akun berhasil diproses!";
         break;
       case "error":
-        icon = "fa-times-circle";
         text = "Gagal";
-        className = "status-error";
+        colorClass = "text-red-500";
+        indicatorClass = "error";
         statusText = "❌ Terjadi kesalahan saat memproses";
         break;
       default:
-        icon = "fa-clock";
         text = "Menunggu";
-        className = "status-waiting";
+        colorClass = "text-muted";
+        indicatorClass = "";
         statusText = "⏳ Menunggu giliran proses...";
     }
 
-    statusBadge.className = `status-badge-small ${className}`;
-    statusBadge.innerHTML = `<i class="fas ${icon}"></i> ${text}`;
+    statusBadge.textContent = text;
+    statusBadge.className = `text-xs font-bold ${colorClass}`;
+    if (indicatorClass) indicator.classList.add(indicatorClass);
 
     // Update processing view for any status change
     const account = accounts.find((acc) => acc.id === accountId);
@@ -585,7 +598,10 @@ function update_account_status(accountId, status, progress) {
       currentProcessingAccount = account;
 
       // Calculate correct index based on selected accounts
-      const selectedAccounts = accounts.filter((acc) => acc.selected);
+      const selectedAccounts = accounts.filter((acc) => {
+        const cb = document.getElementById(`check-${acc.id}`);
+        return cb && cb.checked;
+      });
       currentAccountIndex =
         selectedAccounts.findIndex((acc) => acc.id === accountId) + 1;
 
@@ -606,6 +622,9 @@ function update_account_status(accountId, status, progress) {
   // Scroll to current account
   if (accountRow && status === "processing") {
     accountRow.scrollIntoView({ behavior: "smooth", block: "center" });
+    // Highlight active card
+    document.querySelectorAll('.account-card').forEach(c => c.classList.remove('selected'));
+    accountRow.classList.add('selected');
   }
 
   updateStatistics();
@@ -961,13 +980,16 @@ function updateStatistics() {
     }
   });
 
-  document.getElementById("stat-success").textContent = success;
-  document.getElementById("stat-error").textContent = error;
-  document.getElementById("stat-processing").textContent = processing;
-  document.getElementById("stat-waiting").textContent = waiting;
+  const successEl = document.getElementById("success-count");
+  const errorEl = document.getElementById("failed-count");
+  const totalEl = document.getElementById("total-accounts");
 
-  // Update circular chart
-  updateCircularChart(success, error, processing, waiting);
+  if (successEl) successEl.textContent = success;
+  if (errorEl) errorEl.textContent = error;
+  if (totalEl) totalEl.textContent = accounts.length;
+
+  // Update circular chart (Safeguarded)
+  // updateCircularChart(success, error, processing, waiting);
 }
 
 // Update circular progress chart
@@ -1093,14 +1115,10 @@ setTimeout(checkExportStatus, 1000);
 // ============================================
 
 function toggleHeadless() {
-  headlessEnabled = !headlessEnabled;
   const toggle = document.getElementById("headless-toggle");
   if (toggle) {
-    if (headlessEnabled) {
-      toggle.classList.add("active");
-    } else {
-      toggle.classList.remove("active");
-    }
+    headlessEnabled = toggle.checked;
+    console.log("Headless mode:", headlessEnabled);
   }
 }
 
