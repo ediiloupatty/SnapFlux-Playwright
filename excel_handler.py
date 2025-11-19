@@ -18,6 +18,7 @@ try:
         get_master_filename,
         get_sheet_name_dynamic,
     )
+    from .validators import parse_inputan_to_int, parse_stok_to_int
 except ImportError:
     from constants import (
         BULAN_ID,
@@ -25,32 +26,7 @@ except ImportError:
         get_master_filename,
         get_sheet_name_dynamic,
     )
-
-
-def parse_stok_to_int(stok_str):
-    """Parse stok string ke integer"""
-    import re
-
-    if not stok_str:
-        return 0
-    # Extract angka dari string seperti "89 Tabung"
-    match = re.search(r"(\d+)", str(stok_str))
-    if match:
-        return int(match.group(1))
-    return 0
-
-
-def parse_inputan_to_int(inputan_str):
-    """Parse inputan string ke integer"""
-    import re
-
-    if not inputan_str:
-        return 0
-    # Extract angka dari string seperti "12 Tabung"
-    match = re.search(r"(\d+)", str(inputan_str))
-    if match:
-        return int(match.group(1))
-    return 0
+    from validators import parse_inputan_to_int, parse_stok_to_int
 
 
 def get_excel_filename(selected_date=None):

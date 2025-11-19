@@ -26,6 +26,12 @@ from PlayWRight.utils import (
     print_account_stats,
     setup_logging,
 )
+from PlayWRight.validators import (
+    is_valid_email,
+    is_valid_phone,
+    is_valid_pin,
+    validate_username,
+)
 
 # Import enhanced configuration (backward compatible)
 try:

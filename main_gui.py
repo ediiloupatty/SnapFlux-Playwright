@@ -4,6 +4,11 @@ File ini menjalankan web-based GUI dengan Python backend
 """
 
 import json
+# Import config
+try:
+    from config import HEADLESS_MODE
+except ImportError:
+    HEADLESS_MODE = False  # Default fallback
 import logging
 import os
 import sys
@@ -24,6 +29,12 @@ from export_handler import export_results_to_excel
 from login_handler import login_direct
 from navigation_handler import click_laporan_penjualan_direct
 from utils import load_accounts_from_excel, setup_logging
+from validators import (
+    is_valid_email,
+    is_valid_phone,
+    is_valid_pin,
+    validate_username,
+)
 
 # Setup logger
 logger = logging.getLogger("gui_automation")
@@ -242,7 +253,7 @@ def run_automation_background(accounts, selected_date, settings):
     try:
         eel.log_message("🚀 Memulai proses automation...", "info")
 
-        headless_mode = settings.get("headless", True)
+        headless_mode = settings.get("headless", HEADLESS_MODE)
         delay = settings.get("delay", 2.0)
 
         results = []
@@ -283,6 +294,10 @@ def run_automation_background(accounts, selected_date, settings):
 
                 browser_manager = PlaywrightBrowserManager()
                 page = browser_manager.setup_browser(headless=headless_mode)
+
+                # Tambahkan delay untuk stabilitas di mode GUI
+                if not headless_mode:
+                    time.sleep(2.0)
 
                 if not page:
                     eel.update_account_status(account["id"], "error", 0)
@@ -390,6 +405,10 @@ def run_automation_background(accounts, selected_date, settings):
                 logger.error(f"Error processing {nama}: {str(e)}", exc_info=True)
 
             finally:
+                # Delay sejenak sebelum menutup browser agar user bisa melihat hasil akhir
+                if not headless_mode:
+                    time.sleep(1.0)
+
                 if browser_manager:
                     browser_manager.close()
 

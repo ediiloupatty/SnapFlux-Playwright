@@ -12,6 +12,55 @@ let currentAccountIndex = 0;
 let totalAccounts = 0;
 
 // ============================================
+// MODERN ALERT HELPERS
+// ============================================
+
+// Modern alert using SweetAlert2
+function showAlert(message, type = 'info') {
+  const icons = {
+    'info': 'info',
+    'success': 'success',
+    'error': 'error',
+    'warning': 'warning'
+  };
+
+  return Swal.fire({
+    icon: icons[type] || 'info',
+    title: type === 'error' ? 'Oops...' : type === 'success' ? 'Berhasil!' : 'Informasi',
+    text: message,
+    confirmButtonText: 'OK',
+    confirmButtonColor: '#4a70a9',
+    background: '#ffffff',
+    customClass: {
+      popup: 'rounded-lg',
+      confirmButton: 'btn btn-primary'
+    }
+  });
+}
+
+// Modern confirm using SweetAlert2
+async function showConfirm(message, title = 'Konfirmasi') {
+  const result = await Swal.fire({
+    title: title,
+    html: message.replace(/\n/g, '<br>'),
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Ya, Lanjutkan',
+    cancelButtonText: 'Batal',
+    confirmButtonColor: '#4a70a9',
+    cancelButtonColor: '#6b7280',
+    reverseButtons: true,
+    customClass: {
+      popup: 'rounded-lg',
+      confirmButton: 'btn btn-primary',
+      cancelButton: 'btn btn-secondary'
+    }
+  });
+
+  return result.isConfirmed;
+}
+
+// ============================================
 // INITIALIZATION
 // ============================================
 
@@ -257,7 +306,7 @@ async function startAutomation() {
 
   if (selectedAccounts.length === 0) {
     console.warn("⚠️ No accounts selected");
-    alert("Pilih minimal 1 akun untuk diproses!");
+    showAlert("Pilih minimal 1 akun untuk diproses!", 'warning');
     return;
   }
 
@@ -273,11 +322,14 @@ async function startAutomation() {
   console.log("Settings:", settings);
 
   // Confirm
-  const confirmStart = window.confirm(
-    `Mulai automation untuk ${selectedAccounts.length} akun?\n\n` +
-      `Mode: ${settings.headless ? "Headless" : "GUI Visible"}\n` +
-      `Tanggal: ${settings.date || "Tanpa filter"}\n` +
-      `Delay: ${settings.delay} detik`,
+  const confirmStart = await showConfirm(
+    `Mulai automation untuk <strong>${selectedAccounts.length} akun</strong>?<br><br>` +
+    `<div style="text-align: left; display: inline-block;">` +
+    `📋 <strong>Mode:</strong> ${settings.headless ? "Headless (Background)" : "GUI Visible"}<br>` +
+    `📅 <strong>Tanggal:</strong> ${settings.date || "Tanpa filter"}<br>` +
+    `⏱️ <strong>Delay:</strong> ${settings.delay} detik` +
+    `</div>`,
+    'Mulai Automation?'
   );
 
   if (!confirmStart) {
@@ -317,7 +369,7 @@ async function startAutomation() {
   if (firstAccount) {
     currentProcessingAccount = firstAccount;
     updateProcessingView(
-      firstAccount.name,
+      firstAccount.nama,
       firstAccount.username,
       1,
       totalAccounts,
@@ -332,7 +384,7 @@ async function startAutomation() {
     const result = await eel.start_automation(selectedAccounts, settings)();
 
     if (!result.success) {
-      alert(`Error: ${result.message}`);
+      showAlert(result.message, 'error');
       logMessage(`❌ ${result.message}`, "error");
       automationRunning = false;
       updateControlButtons();
@@ -341,7 +393,7 @@ async function startAutomation() {
   } catch (error) {
     console.error("Error starting automation:", error);
     logMessage("❌ Gagal memulai automation", "error");
-    alert("Error: " + error);
+    showAlert("Terjadi kesalahan: " + error, 'error');
     automationRunning = false;
     updateControlButtons();
     hideProcessingView();
@@ -386,12 +438,15 @@ async function pauseAutomation() {
     }
   } catch (error) {
     console.error("Error pausing automation:", error);
-    alert("Error: " + error);
+    showAlert("Terjadi kesalahan saat pause: " + error, 'error');
   }
 }
 
 async function stopAutomation() {
-  const confirm = window.confirm("Yakin ingin menghentikan automation?");
+  const confirm = await showConfirm(
+    "Automation yang sedang berjalan akan dihentikan.<br>Data yang sudah diproses akan tetap tersimpan.",
+    "Hentikan Automation?"
+  );
   if (!confirm) return;
 
   try {
@@ -539,7 +594,7 @@ function update_account_status(accountId, status, progress) {
       );
 
       updateProcessingView(
-        account.name,
+        account.nama,
         account.username,
         currentAccountIndex,
         totalAccounts,
@@ -693,7 +748,7 @@ function updateProcessingView(
 ) {
   // Update name
   const nameEl = document.getElementById("processing-name");
-  if (nameEl) nameEl.textContent = name || "Loading...";
+  if (nameEl) nameEl.textContent = name || "Memuat...";
 
   // Update username
   const usernameEl = document.getElementById("processing-username");

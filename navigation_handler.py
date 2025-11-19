@@ -43,23 +43,14 @@ def click_laporan_penjualan_direct(page: Page) -> bool:
         time.sleep(2.0)
 
         # Coba berbagai selector untuk menu Laporan Penjualan
+        # Coba selector yang terbukti berhasil untuk menu Laporan Penjualan
         menu_selectors = [
-            # Selector untuk icon dengan text
-            "div:has(img[src*='icon-saleReport']):has-text('Laporan Penjualan')",
+            # Selector utama yang berhasil
             "div:has(img[alt*='sale']):has-text('Laporan Penjualan')",
-            # Selector untuk container dengan class
-            ".menu-item:has-text('Laporan Penjualan')",
-            ".card:has-text('Laporan Penjualan')",
-            # Generic text selectors
+            # Backup selectors jika yang utama gagal
+            "div:has(img[src*='icon-saleReport']):has-text('Laporan Penjualan')",
             "text=Laporan Penjualan",
-            "a:has-text('Laporan Penjualan')",
-            "button:has-text('Laporan Penjualan')",
-            "div:has-text('Laporan Penjualan')",
-            # URL-based selectors
             "[href*='laporan-penjualan']",
-            "[href*='laporan_penjualan']",
-            "[href*='sale-report']",
-            "[href*='sales-report']",
         ]
 
         for selector in menu_selectors:
@@ -87,7 +78,7 @@ def click_laporan_penjualan_direct(page: Page) -> bool:
                     continue
 
                 print(f"   ✓ Elemen ditemukan, mengklik...")
-                menu_item.click()
+                menu_item.click(force=True)
                 print("✅ Menu Laporan Penjualan berhasil diklik")
                 time.sleep(2.0)
                 return True

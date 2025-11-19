@@ -17,6 +17,8 @@ from logging.handlers import RotatingFileHandler
 
 import pandas as pd
 
+from validators import is_valid_email, is_valid_phone, is_valid_pin
+
 # Setup logger
 logger = logging.getLogger("playwright_automation")
 
@@ -71,54 +73,6 @@ def setup_logging():
     console.setLevel(logging.INFO)
     console.setFormatter(formatter)
     logger.addHandler(console)
-
-
-# ============================================
-# VALIDATION FUNCTIONS
-# ============================================
-
-
-def is_valid_email(email):
-    """
-    Validasi format email
-
-    Args:
-        email (str): Email yang akan divalidasi
-
-    Returns:
-        bool: True jika valid, False jika tidak
-    """
-    pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-    return re.match(pattern, email) is not None
-
-
-def is_valid_phone(phone):
-    """
-    Validasi format nomor HP Indonesia
-
-    Args:
-        phone (str): Nomor HP yang akan divalidasi
-
-    Returns:
-        bool: True jika valid, False jika tidak
-    """
-    # Nomor HP Indonesia: 08xx atau 628xx, panjang 10-15 digit
-    pattern = r"^(08|628)\d{8,13}$"
-    return re.match(pattern, phone) is not None
-
-
-def is_valid_pin(pin):
-    """
-    Validasi format PIN
-
-    Args:
-        pin (str): PIN yang akan divalidasi
-
-    Returns:
-        bool: True jika valid, False jika tidak
-    """
-    # PIN harus angka, panjang 4-8 digit
-    return pin.isdigit() and 4 <= len(pin) <= 8
 
 
 # ============================================
@@ -282,70 +236,6 @@ def get_date_input():
         except Exception as e:
             print(f"❌ Error input tanggal: {str(e)}")
             return None
-
-
-# ============================================
-# EXCEL FUNCTIONS
-# ============================================
-
-BULAN_ID = [
-    "",
-    "JANUARI",
-    "FEBRUARI",
-    "MARET",
-    "APRIL",
-    "MEI",
-    "JUNI",
-    "JULI",
-    "AGUSTUS",
-    "SEPTEMBER",
-    "OKTOBER",
-    "NOVEMBER",
-    "DESEMBER",
-]
-
-
-def get_master_filename(selected_date=None):
-    """
-    Generate nama file Excel master
-
-    Args:
-        selected_date (datetime): Tanggal yang dipilih
-
-    Returns:
-        str: Nama file Excel
-    """
-    if selected_date:
-        year = selected_date.year
-        month = selected_date.month
-        month_name = BULAN_ID[month].upper()
-    else:
-        now = datetime.now()
-        year = now.year
-        month = now.month
-        month_name = BULAN_ID[month].upper()
-
-    return f"DATA_SNAPFLUX_MASTER_{year}_{month_name}.xlsx"
-
-
-def get_sheet_name_dynamic(selected_date=None):
-    """
-    Generate nama sheet berdasarkan bulan
-
-    Args:
-        selected_date (datetime): Tanggal yang dipilih
-
-    Returns:
-        str: Nama sheet
-    """
-    if selected_date:
-        month = selected_date.month
-        year = selected_date.year
-    else:
-        month = datetime.now().month
-        year = datetime.now().year
-
-    return f"{BULAN_ID[month].upper()}_{year}"
 
 
 # ============================================

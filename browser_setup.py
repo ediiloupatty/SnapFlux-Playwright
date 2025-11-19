@@ -85,7 +85,11 @@ try:
     from src.config_manager import config_manager
 
     def get_chrome_binary():
-        # Priority: config module > environment > config_manager > fallback
+        # Priority: environment > config module > config_manager > fallback
+        env_chrome = os.environ.get("CHROME_BINARY_PATH")
+        if env_chrome and os.path.exists(env_chrome):
+            return env_chrome
+
         chrome_from_config = get_chrome_from_config()
         if chrome_from_config and os.path.exists(chrome_from_config):
             return chrome_from_config
@@ -103,7 +107,11 @@ try:
 except ImportError:
 
     def get_chrome_binary():
-        # Priority: config module > environment > fallback
+        # Priority: environment > config module > fallback
+        env_chrome = os.environ.get("CHROME_BINARY_PATH")
+        if env_chrome and os.path.exists(env_chrome):
+            return env_chrome
+
         chrome_from_config = get_chrome_from_config()
         if chrome_from_config and os.path.exists(chrome_from_config):
             return chrome_from_config
@@ -209,6 +217,7 @@ class PlaywrightBrowserManager:
                 "--disable-permissions-api",
                 "--memory-pressure-off",
                 "--max_old_space_size=1024",
+                "--window-size=1366,768",
             ]
 
             # Tentukan executable path
@@ -236,7 +245,7 @@ class PlaywrightBrowserManager:
 
             # Buat browser context dengan konfigurasi
             self.context = self.browser.new_context(
-                viewport={"width": 1366, "height": 768} if not headless else None,
+                viewport={"width": 1366, "height": 768},
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
                 ignore_https_errors=True,
                 java_script_enabled=True,

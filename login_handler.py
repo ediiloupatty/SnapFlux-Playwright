@@ -122,12 +122,13 @@ def login_direct(page: Page, username: str, pin: str):
                         continue
             except Exception:
                 continue
-
         if not pin_filled:
             print("❌ Gagal mengisi PIN")
             return False, {"gagal_masuk_akun": False, "count": 0}
 
         # Langsung cari dan klik tombol login
+        print("⏳ Jeda 2.0 detik sebelum klik tombol login...")
+        time.sleep(2.0)
         print("🚀 Mencari dan mengklik tombol login...")
         login_clicked = False
 
@@ -147,8 +148,10 @@ def login_direct(page: Page, username: str, pin: str):
                     try:
                         login_button.wait_for(state="visible", timeout=2000)
                         if login_button.is_enabled():
-                            login_button.click()
+                            # Gunakan force=True untuk memastikan klik terjadi meskipun ada overlay
+                            login_button.click(force=True)
                             print("✅ Tombol login berhasil diklik")
+                            time.sleep(1.0)  # Beri waktu untuk event click diproses
                             login_clicked = True
                             break
                     except Exception:
@@ -290,7 +293,7 @@ def login_direct(page: Page, username: str, pin: str):
         return False, {"gagal_masuk_akun": False, "count": 0}
 
 
-def wait_for_dashboard(page: Page, timeout: int = 10000):
+def wait_for_dashboard(page: Page, timeout: int = 20000):
     """
     Menunggu hingga dashboard merchant muncul setelah login
 
@@ -343,6 +346,9 @@ def wait_for_dashboard(page: Page, timeout: int = 10000):
             print("✅ Login berhasil (URL sudah bukan halaman login)")
             return True
         print("⏱️ Timeout menunggu dashboard")
+        # FORCE TRUE jika URL sudah berubah
+        if "merchant-login" not in page.url:
+             return True
         return False
     except Exception as e:
         print(f"⚠️ Error menunggu dashboard: {str(e)}")
