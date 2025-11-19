@@ -17,31 +17,28 @@
     <aside class="sidebar">
         <div class="sidebar-header">
             <div class="logo">
-                <div class="logo-icon">
-                    <i class="fas fa-bolt"></i>
-                </div>
+                <img src="img/logo.png" alt="SnapFlux Logo" class="logo-image">
                 <div class="logo-text">
                     <h1>SnapFlux</h1>
-                    <p>Automation v2.0</p>
                 </div>
             </div>
         </div>
 
         <nav class="sidebar-nav">
             <div class="nav-item active" onclick="showPage('dashboard')">
-                <i class="fas fa-home"></i>
+                <i class="fas fa-chart-simple"></i>
                 <span>Dashboard</span>
             </div>
             <div class="nav-item" onclick="showPage('automation')">
-                <i class="fas fa-robot"></i>
+                <i class="fas fa-bolt"></i>
                 <span>Automation</span>
             </div>
             <div class="nav-item" onclick="showPage('results')">
-                <i class="fas fa-file-export"></i>
+                <i class="fas fa-file-lines"></i>
                 <span>Results</span>
             </div>
             <div class="nav-item" onclick="showPage('settings')">
-                <i class="fas fa-cog"></i>
+                <i class="fas fa-sliders"></i>
                 <span>Settings</span>
             </div>
         </nav>
@@ -147,12 +144,19 @@
                 </div>
 
                 <!-- Account List Container -->
-                <div id="accounts-list-view">
-                    <div id="accounts-container" class="account-grid">
-                        <!-- Accounts will be injected here -->
-                        <div class="empty-state text-center py-8 text-muted">
-                            <i class="fas fa-inbox text-4xl mb-2"></i>
-                            <p>Belum ada akun dimuat</p>
+                <div class="card account-list-card">
+                    <div class="card-header flex justify-between items-center mb-4">
+                        <h3 class="form-label" style="margin:0">Daftar Akun</h3>
+                        <span class="text-xs text-muted" id="account-count-badge">0 Akun</span>
+                    </div>
+
+                    <div id="accounts-list-view" class="account-scroll-container">
+                        <div id="accounts-container" class="account-grid">
+                            <!-- Accounts will be injected here -->
+                            <div class="empty-state text-center py-8 text-muted">
+                                <i class="fas fa-inbox text-4xl mb-2"></i>
+                                <p>Belum ada akun dimuat</p>
+                            </div>
                         </div>
                     </div>
                 </div>
