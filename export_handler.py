@@ -12,26 +12,32 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
 
-def export_results_to_excel(results: List[Dict], export_date: datetime) -> str:
+def export_results_to_excel(results: List[Dict], export_date: datetime, custom_filepath: str = None) -> str:
     """
     Export hasil automation ke Excel dengan format multi-tanggal
 
     Args:
         results (List[Dict]): List hasil automation
         export_date (datetime): Tanggal export
+        custom_filepath (str, optional): Path custom untuk menyimpan file. Defaults to None.
 
     Returns:
         str: Path file Excel yang di-generate
     """
     try:
-        # Buat folder results jika belum ada
-        results_dir = os.path.join(os.path.dirname(__file__), "results")
-        os.makedirs(results_dir, exist_ok=True)
+        if custom_filepath:
+            filepath = custom_filepath
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        else:
+            # Buat folder results jika belum ada
+            results_dir = os.path.join(os.path.dirname(__file__), "results")
+            os.makedirs(results_dir, exist_ok=True)
 
-        # Nama file dengan timestamp
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"SnapFlux_Export_{timestamp}.xlsx"
-        filepath = os.path.join(results_dir, filename)
+            # Nama file dengan timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"SnapFlux_Export_{timestamp}.xlsx"
+            filepath = os.path.join(results_dir, filename)
 
         # Buat workbook baru
         wb = openpyxl.Workbook()

@@ -70,14 +70,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Initialize default values first
   initializeDefaults();
 
-  // Load available Excel files
-  await loadExcelFiles();
+  // Load available Excel files - REMOVED
+  // await loadExcelFiles();
 
   // Make sure all functions are accessible globally
   window.startAutomation = startAutomation;
   window.pauseAutomation = pauseAutomation;
   window.stopAutomation = stopAutomation;
-  window.loadAccounts = loadAccounts;
+  window.handleFileSelect = handleFileSelect;
   window.toggleSelectAll = toggleSelectAll;
   window.showPage = showPage;
   window.toggleHeadless = toggleHeadless;
@@ -161,62 +161,66 @@ function showPage(pageName) {
 // EXCEL FILE MANAGEMENT
 // ============================================
 
-async function loadExcelFiles() {
-  try {
-    const result = await eel.get_available_excel_files()();
-    const select = document.getElementById("excel-file-select");
+async function handleFileSelect(input) {
+  if (input.files && input.files[0]) {
+    const file = input.files[0];
+    const fileName = file.name;
 
-    if (result.success && result.files.length > 0) {
-      select.innerHTML = '<option value="">-- Pilih File --</option>';
-      result.files.forEach((file) => {
-        const option = document.createElement("option");
-        option.value = file;
-        option.textContent = file;
-        select.appendChild(option);
-      });
-      logMessage(`📂 Ditemukan ${result.files.length} file Excel`, "info");
-    } else {
-      select.innerHTML = '<option value="">-- Tidak ada file --</option>';
-      logMessage("⚠️ Tidak ada file Excel di folder akun/", "warning");
-    }
-  } catch (error) {
-    console.error("Error loading Excel files:", error);
-    logMessage("❌ Gagal memuat daftar file Excel", "error");
-  }
-}
+    // Update label
+    const label = document.getElementById("selected-filename");
+    if (label) label.textContent = fileName;
 
-async function loadAccounts() {
-  const select = document.getElementById("excel-file-select");
-  const fileName = select.value;
+    logMessage(`📥 Membaca file ${fileName}...`, "info");
 
-  if (!fileName) {
-    showAlert("Pilih file Excel terlebih dahulu!", 'warning');
-    return;
-  }
+    // Read file
+    const reader = new FileReader();
+    reader.onload = async function (e) {
+      const base64Data = e.target.result;
 
-  logMessage(`📥 Memuat akun dari ${fileName}...`, "info");
+      try {
+        // Check if function exists (in case app wasn't restarted)
+        if (typeof eel.load_accounts_from_data !== 'function') {
+          showAlert("Update belum diterapkan. Harap TUTUP aplikasi dan jalankan ulang START_GUI.bat", 'warning');
+          input.value = '';
+          label.textContent = "Belum ada file";
+          return;
+        }
 
-  try {
-    const result = await eel.load_accounts_from_file(fileName)();
+        const result = await eel.load_accounts_from_data(base64Data, fileName)();
 
-    if (result.success) {
-      accounts = result.accounts;
-      renderAccounts();
-      updateStatistics();
+        if (result.success) {
+          accounts = result.accounts;
+          renderAccounts();
+          updateStatistics();
 
-      // Show account info
-      document.getElementById("account-info").classList.remove("hidden");
-      document.getElementById("account-count").textContent = result.count;
+          // Show account info
+          document.getElementById("account-info").classList.remove("hidden");
+          document.getElementById("account-count").textContent = result.count;
 
-      logMessage(`✅ ${result.message}`, "success");
-    } else {
-      showAlert(result.message, 'error');
-      logMessage(`❌ ${result.message}`, "error");
-    }
-  } catch (error) {
-    console.error("Error loading accounts:", error);
-    logMessage("❌ Gagal memuat akun dari file", "error");
-    showAlert("Terjadi kesalahan saat memuat akun: " + error, 'error');
+          logMessage(`✅ ${result.message}`, "success");
+        } else {
+          showAlert(result.message, 'error');
+          logMessage(`❌ ${result.message}`, "error");
+          // Reset input
+          input.value = '';
+          label.textContent = "Belum ada file";
+        }
+      } catch (error) {
+        console.error("Error loading accounts:", error);
+        logMessage("❌ Gagal memuat akun dari file", "error");
+        showAlert("Terjadi kesalahan saat memuat akun: " + error, 'error');
+        // Reset input
+        input.value = '';
+        label.textContent = "Belum ada file";
+      }
+    };
+
+    reader.onerror = function (error) {
+      console.error("Error reading file:", error);
+      showAlert("Gagal membaca file", 'error');
+    };
+
+    reader.readAsDataURL(file);
   }
 }
 
@@ -373,10 +377,10 @@ async function startAutomation() {
     currentProcessingAccount = firstAccount;
     updateProcessingView(
       firstAccount.nama,
-      firstAccount.username,
+      "", // Hide username/email
       1,
       totalAccounts,
-      "⏳ Mempersiapkan proses...",
+      "Mempersiapkan proses...",
       false, // Don't update progress, let backend handle it
     );
   }
@@ -549,43 +553,43 @@ function update_account_status(accountId, status, progress) {
         text = "Proses";
         colorClass = "text-indigo-500";
         indicatorClass = "processing";
-        statusText = "🔄 Sedang login dan mengambil data...";
+        statusText = "Sedang login dan mengambil data...";
         break;
       case "login":
         text = "Login";
         colorClass = "text-indigo-500";
         indicatorClass = "processing";
-        statusText = "🔐 Melakukan login ke akun...";
+        statusText = "Melakukan login ke akun...";
         break;
       case "fetching":
         text = "Fetching";
         colorClass = "text-indigo-500";
         indicatorClass = "processing";
-        statusText = "📊 Mengambil data transaksi...";
+        statusText = "Mengambil data transaksi...";
         break;
       case "saving":
         text = "Saving";
         colorClass = "text-indigo-500";
         indicatorClass = "processing";
-        statusText = "💾 Menyimpan data ke Excel...";
+        statusText = "Menyimpan data ke Excel...";
         break;
       case "done":
         text = "Selesai";
         colorClass = "text-green-500";
         indicatorClass = "done";
-        statusText = "✅ Akun berhasil diproses!";
+        statusText = "Akun berhasil diproses!";
         break;
       case "error":
         text = "Gagal";
         colorClass = "text-red-500";
         indicatorClass = "error";
-        statusText = "❌ Terjadi kesalahan saat memproses";
+        statusText = "Terjadi kesalahan saat memproses";
         break;
       default:
         text = "Menunggu";
         colorClass = "text-muted";
         indicatorClass = "";
-        statusText = "⏳ Menunggu giliran proses...";
+        statusText = "Menunggu giliran proses...";
     }
 
     statusBadge.textContent = text;
@@ -611,7 +615,7 @@ function update_account_status(accountId, status, progress) {
 
       updateProcessingView(
         account.nama,
-        account.username,
+        "", // Hide username/email
         currentAccountIndex,
         totalAccounts,
         statusText,
@@ -619,12 +623,18 @@ function update_account_status(accountId, status, progress) {
     }
   }
 
-  // Scroll to current account
+  // Scroll to current account - REMOVED to prevent jumping
   if (accountRow && status === "processing") {
-    accountRow.scrollIntoView({ behavior: "smooth", block: "center" });
+    // accountRow.scrollIntoView({ behavior: "smooth", block: "center" });
     // Highlight active card
-    document.querySelectorAll('.account-card').forEach(c => c.classList.remove('selected'));
+    document.querySelectorAll('.account-list-item').forEach(c => {
+      c.classList.remove('selected');
+      c.classList.remove('processing'); // Remove processing from others
+    });
     accountRow.classList.add('selected');
+    accountRow.classList.add('processing'); // Add processing effect
+  } else if (accountRow && status !== "processing") {
+    accountRow.classList.remove('processing');
   }
 
   updateStatistics();
@@ -737,22 +747,18 @@ function logMessage(message, type = "info") {
 
 function showProcessingView() {
   const processingView = document.getElementById("processing-view");
-  const accountsListView = document.getElementById("accounts-list-view");
-
-  if (processingView && accountsListView) {
-    processingView.classList.add("active");
-    accountsListView.style.display = "none";
+  // We no longer hide the list view, we just show the processing card above it
+  if (processingView) {
+    processingView.classList.remove("hidden");
+    processingView.scrollIntoView({ behavior: 'smooth', block: 'center' });
     console.log("✅ Processing view shown");
   }
 }
 
 function hideProcessingView() {
   const processingView = document.getElementById("processing-view");
-  const accountsListView = document.getElementById("accounts-list-view");
-
-  if (processingView && accountsListView) {
-    processingView.classList.remove("active");
-    accountsListView.style.display = "block";
+  if (processingView) {
+    processingView.classList.add("hidden");
     console.log("✅ Processing view hidden");
   }
 }
@@ -782,7 +788,7 @@ function updateProcessingView(
   // Update status text
   const statusEl = document.getElementById("processing-status");
   if (statusEl) {
-    statusEl.innerHTML = `<span class="processing-spinner"></span><span style="margin-left: 0.5rem">${statusText}</span>`;
+    statusEl.textContent = statusText;
   }
 
   // Only update progress bar if explicitly requested (initial load)
@@ -863,9 +869,13 @@ function automation_completed(successCount, totalCount) {
 }
 
 function clearLog() {
-  const logContainer = document.getElementById("log-container");
-  logContainer.innerHTML =
-    '<p class="text-gray-500 text-sm"><span class="text-green-400">[INFO]</span> Log dibersihkan</p>';
+  const container = document.getElementById("log-container");
+  if (container) {
+    container.innerHTML = "";
+    // Call backend to clear stored results
+    eel.clear_results()();
+    logMessage("Log dan data hasil dibersihkan", "info");
+  }
 }
 
 // ============================================
@@ -1084,6 +1094,66 @@ document.addEventListener("keydown", (e) => {
 
 if ("Notification" in window && Notification.permission === "default") {
   Notification.requestPermission();
+}
+
+// ============================================
+// SAVE RESULTS AS
+// ============================================
+
+async function saveResultsAs() {
+  try {
+    const result = await eel.save_results_as()();
+    if (result.success) {
+      // Create a blob from base64
+      const binaryString = window.atob(result.base64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+
+      // Use File System Access API if available (for "Save As" dialog)
+      if (window.showSaveFilePicker) {
+        try {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: result.filename,
+            types: [{
+              description: 'Excel File',
+              accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] },
+            }],
+          });
+          const writable = await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+          showAlert("File berhasil disimpan!", 'success');
+          return;
+        } catch (err) {
+          if (err.name === 'AbortError') {
+            // User cancelled, do nothing
+            return;
+          }
+          // Fallback to download if picker fails
+          console.warn("File picker failed, falling back to download:", err);
+        }
+      }
+
+      // Fallback: Trigger download
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = result.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      showAlert(`File berhasil diunduh:\n${result.filename}`, 'success');
+
+    } else {
+      showAlert(result.message, 'error');
+    }
+  } catch (error) {
+    console.error("Error saving results:", error);
+    showAlert("Terjadi kesalahan saat menyimpan file", 'error');
+  }
 }
 
 // ============================================

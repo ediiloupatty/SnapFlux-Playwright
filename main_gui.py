@@ -13,8 +13,12 @@ import logging
 import os
 import sys
 import time
+import io
 from datetime import datetime
 from threading import Event, Thread
+import tkinter as tk
+from tkinter import filedialog
+import base64
 
 import eel
 
@@ -53,6 +57,61 @@ automation_export_date = None
 eel.init("web")
 
 
+@eel.expose
+def load_accounts_from_data(base64_data, filename):
+    """
+    Load akun dari data Base64 (file upload dari browser)
+    """
+    try:
+        # Decode base64
+        if "," in base64_data:
+            base64_data = base64_data.split(",")[1]
+            
+        decoded = base64.b64decode(base64_data)
+        file_obj = io.BytesIO(decoded)
+        
+        # Load accounts using existing utility
+        accounts = load_accounts_from_excel(file_obj)
+
+        if not accounts:
+            return {
+                "success": False,
+                "accounts": [],
+                "message": "Tidak ada akun valid dalam file",
+                "count": 0,
+            }
+
+        # Format accounts untuk frontend
+        formatted_accounts = []
+        for idx, (nama, username, pin) in enumerate(accounts, 1):
+            formatted_accounts.append(
+                {
+                    "id": idx,
+                    "nama": nama,
+                    "username": username,
+                    "pin": pin,
+                    "status": "waiting",
+                    "progress": 0,
+                }
+            )
+
+        return {
+            "success": True,
+            "accounts": formatted_accounts,
+            "message": f"Berhasil load {len(accounts)} akun dari {filename}",
+            "count": len(accounts),
+        }
+
+    except Exception as e:
+        logger.error(f"Error loading accounts from data: {str(e)}", exc_info=True)
+        return {
+            "success": False,
+            "accounts": [],
+            "message": f"Error: {str(e)}",
+            "count": 0,
+        }
+
+# Deprecated: load_accounts_from_file (kept for reference if needed, but unused by frontend now)
 @eel.expose
 def load_accounts_from_file(file_path):
     """
@@ -257,7 +316,11 @@ def run_automation_background(accounts, selected_date, settings):
         delay = settings.get("delay", 2.0)
 
         results = []
-        automation_results = []  # Reset global results
+        # Only reset global results if it's a fresh start (e.g. user cleared logs or explicitly requested reset)
+        # For now, we'll append to keep history until cleared manually
+        if not automation_results:
+             automation_results = []
+             
         automation_export_date = selected_date if selected_date else datetime.now()
         total_accounts = len(accounts)
 
@@ -472,6 +535,62 @@ def export_to_excel():
 
 
 @eel.expose
+def save_results_as():
+    """
+    Simpan hasil automation dengan mengembalikan base64 string
+    agar browser bisa menangani dialog save/download.
+    Menghindari masalah threading dengan Tkinter.
+    """
+    global automation_results, automation_export_date
+
+    try:
+        if not automation_results:
+            return {
+                "success": False,
+                "message": "Tidak ada data untuk disimpan"
+            }
+
+        # Generate default filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"SnapFlux_Export_{timestamp}.xlsx"
+        
+        # Use a temp directory
+        temp_dir = os.path.join(os.path.dirname(__file__), "temp_export")
+        os.makedirs(temp_dir, exist_ok=True)
+        temp_filepath = os.path.join(temp_dir, filename)
+
+        # Export ke temp file
+        export_date = (
+            automation_export_date if automation_export_date else datetime.now()
+        )
+        
+        saved_path = export_results_to_excel(automation_results, export_date, custom_filepath=temp_filepath)
+
+        # Read file and convert to base64
+        with open(saved_path, "rb") as f:
+            file_content = f.read()
+            
+        base64_content = base64.b64encode(file_content).decode('utf-8')
+        
+        # Clean up temp file
+        try:
+            os.remove(saved_path)
+        except:
+            pass
+
+        return {
+            "success": True,
+            "base64": base64_content,
+            "filename": filename,
+            "message": "File siap disimpan"
+        }
+
+    except Exception as e:
+        logger.error(f"Error saving results as: {str(e)}", exc_info=True)
+        return {"success": False, "message": f"Error: {str(e)}"}
+
+
+@eel.expose
 def open_export_folder():
     """
     Buka folder results di file explorer
@@ -521,6 +640,14 @@ def get_export_ready_status():
 def get_automation_status():
     """Get status automation saat ini"""
     return {"running": automation_running, "paused": automation_paused}
+
+
+@eel.expose
+def clear_results():
+    """Clear stored automation results"""
+    global automation_results
+    automation_results = []
+    return {"success": True, "message": "Data hasil dibersihkan"}
 
 
 def main():
