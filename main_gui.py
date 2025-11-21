@@ -31,8 +31,12 @@ from browser_setup import PlaywrightBrowserManager
 from data_extractor import get_stock_value_direct, get_tabung_terjual_direct
 from excel_handler import save_to_excel_pivot_format
 from export_handler import export_results_to_excel
+from internet_check import check_before_step, is_online, wait_for_internet
 from login_handler import login_direct
-from navigation_handler import click_laporan_penjualan_direct, click_date_elements_direct
+from navigation_handler import (
+    click_date_elements_direct,
+    click_laporan_penjualan_direct,
+)
 from telemetry_manager import get_telemetry_manager
 from utils import load_accounts_from_excel, setup_logging
 from validators import (
@@ -373,6 +377,22 @@ def run_automation_background(accounts, selected_date, settings):
             browser_manager = None
 
             try:
+                # ===== CHECK INTERNET SEBELUM SETUP BROWSER =====
+                if not check_before_step(
+                    "setup browser",
+                    username,
+                    max_wait=300,
+                    log_callback=eel.log_message,
+                ):
+                    eel.update_account_status(account["id"], "error", 0)
+                    eel.log_message(
+                        f"❌ Timeout menunggu koneksi internet untuk {nama}", "error"
+                    )
+                    telemetry_manager.record_account_failure(
+                        username, "connection_timeout"
+                    )
+                    continue
+
                 # Setup browser
                 eel.update_account_status(account["id"], "processing", 10)
                 eel.log_message(f"Setup browser untuk {nama}...", "info")
@@ -382,7 +402,7 @@ def run_automation_background(accounts, selected_date, settings):
                 # Force no session usage
                 page = browser_manager.setup_browser(
                     headless=headless_mode,
-                    username=None, 
+                    username=None,
                     use_session=False,
                 )
                 telemetry_manager.end_operation("browser_setup", username)
@@ -399,6 +419,22 @@ def run_automation_background(accounts, selected_date, settings):
                     )
                     continue
 
+                # ===== CHECK INTERNET SEBELUM LOGIN =====
+                if not check_before_step(
+                    "login", username, max_wait=300, log_callback=eel.log_message
+                ):
+                    eel.update_account_status(account["id"], "error", 0)
+                    eel.log_message(
+                        f"❌ Timeout menunggu koneksi internet untuk login {nama}",
+                        "error",
+                    )
+                    telemetry_manager.record_account_failure(
+                        username, "connection_timeout_login"
+                    )
+                    if browser_manager:
+                        browser_manager.close()
+                    continue
+
                 # Login (SELALU LOGIN BARU)
                 eel.update_account_status(account["id"], "processing", 30)
                 eel.log_message(f"Login untuk {nama}...", "info")
@@ -410,13 +446,27 @@ def run_automation_background(accounts, selected_date, settings):
                 if not success:
                     eel.update_account_status(account["id"], "error", 0)
                     eel.log_message(f"Login gagal untuk {nama}", "error")
-                    telemetry_manager.record_account_failure(
-                        username, "login_failed"
-                    )
+                    telemetry_manager.record_account_failure(username, "login_failed")
                     browser_manager.close()
                     continue
 
                 eel.log_message(f"Login berhasil untuk {nama}", "success")
+
+                # ===== CHECK INTERNET SEBELUM AMBIL DATA =====
+                if not check_before_step(
+                    "get data", username, max_wait=300, log_callback=eel.log_message
+                ):
+                    eel.update_account_status(account["id"], "error", 0)
+                    eel.log_message(
+                        f"❌ Timeout menunggu koneksi internet untuk ambil data {nama}",
+                        "error",
+                    )
+                    telemetry_manager.record_account_failure(
+                        username, "connection_timeout_data"
+                    )
+                    if browser_manager:
+                        browser_manager.close()
+                    continue
 
                 # Ambil stok
                 eel.update_account_status(account["id"], "processing", 50)
@@ -438,11 +488,18 @@ def run_automation_background(accounts, selected_date, settings):
                 if click_laporan_penjualan_direct(page):
                     # === FILTER TANGGAL (4 STEPS) ===
                     if selected_date:
-                        eel.log_message(f"Menerapkan filter tanggal: {selected_date.strftime('%d/%m/%Y')}", "info")
+                        eel.log_message(
+                            f"Menerapkan filter tanggal: {selected_date.strftime('%d/%m/%Y')}",
+                            "info",
+                        )
                         if click_date_elements_direct(page, selected_date):
-                            eel.log_message("Filter tanggal berhasil diterapkan", "success")
+                            eel.log_message(
+                                "Filter tanggal berhasil diterapkan", "success"
+                            )
                         else:
-                            eel.log_message("Gagal menerapkan filter tanggal", "warning")
+                            eel.log_message(
+                                "Gagal menerapkan filter tanggal", "warning"
+                            )
                     # ================================
 
                     tabung_terjual = get_tabung_terjual_direct(page)
@@ -467,8 +524,9 @@ def run_automation_background(accounts, selected_date, settings):
                 # Helper untuk konversi aman ke int
                 def safe_int(val):
                     try:
-                        if val is None: return 0
-                        return int(str(val).replace('.', '').replace(',', ''))
+                        if val is None:
+                            return 0
+                        return int(str(val).replace(".", "").replace(",", ""))
                     except:
                         return 0
 
@@ -478,11 +536,7 @@ def run_automation_background(accounts, selected_date, settings):
                 stok_formatted = f"{stok_int} Tabung"
                 tabung_formatted = f"{terjual_int} Tabung"
 
-                status = (
-                    "Ada Penjualan"
-                    if terjual_int > 0
-                    else "Tidak Ada Penjualan"
-                )
+                status = "Ada Penjualan" if terjual_int > 0 else "Tidak Ada Penjualan"
 
                 result = {
                     "pangkalan_id": username,
@@ -518,7 +572,7 @@ def run_automation_background(accounts, selected_date, settings):
                         "status": status,
                     },
                 )
-                
+
                 # Record business metrics (NEW)
                 telemetry_manager.record_business_metrics(stok_int, terjual_int)
 
@@ -776,6 +830,8 @@ def clear_all_sessions():
         "count": 0,
         "message": "Session manager dinonaktifkan",
     }
+
+
 @eel.expose
 def save_telemetry_report():
     """
