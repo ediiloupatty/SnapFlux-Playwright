@@ -33,7 +33,6 @@ from excel_handler import save_to_excel_pivot_format
 from export_handler import export_results_to_excel
 from login_handler import login_direct
 from navigation_handler import click_laporan_penjualan_direct, click_date_elements_direct
-from session_manager import get_session_manager
 from telemetry_manager import get_telemetry_manager
 from utils import load_accounts_from_excel, setup_logging
 from validators import (
@@ -56,8 +55,7 @@ stop_event = Event()
 automation_results = []
 automation_export_date = None
 
-# Initialize session and telemetry managers
-session_manager = get_session_manager()
+# Initialize telemetry manager
 telemetry_manager = get_telemetry_manager()
 
 # Get correct path for exe and script
@@ -334,7 +332,7 @@ def run_automation_background(accounts, selected_date, settings):
 
         headless_mode = settings.get("headless", HEADLESS_MODE)
         delay = settings.get("delay", 2.0)
-        use_session = settings.get("use_session", True)  # Default: use session
+        # use_session = settings.get("use_session", True) # REMOVED: Always fresh login
 
         results = []
         # Only reset global results if it's a fresh start (e.g. user cleared logs or explicitly requested reset)
@@ -375,21 +373,17 @@ def run_automation_background(accounts, selected_date, settings):
             browser_manager = None
 
             try:
-                # Check if session exists
-                has_session = session_manager.has_valid_session(username)
-                if has_session and use_session:
-                    eel.log_message(f"Session ditemukan untuk {nama}", "info")
-
                 # Setup browser
                 eel.update_account_status(account["id"], "processing", 10)
                 eel.log_message(f"Setup browser untuk {nama}...", "info")
 
                 telemetry_manager.start_operation("browser_setup", username)
                 browser_manager = PlaywrightBrowserManager()
+                # Force no session usage
                 page = browser_manager.setup_browser(
                     headless=headless_mode,
-                    username=username if use_session else None,
-                    use_session=use_session,
+                    username=None, 
+                    use_session=False,
                 )
                 telemetry_manager.end_operation("browser_setup", username)
 
@@ -405,35 +399,24 @@ def run_automation_background(accounts, selected_date, settings):
                     )
                     continue
 
-                # Login (skip jika sudah ada session yang valid)
-                if has_session and use_session:
-                    eel.log_message(
-                        f"Menggunakan session tersimpan untuk {nama}", "success"
+                # Login (SELALU LOGIN BARU)
+                eel.update_account_status(account["id"], "processing", 30)
+                eel.log_message(f"Login untuk {nama}...", "info")
+
+                telemetry_manager.start_operation("login", username)
+                success, gagal_info = login_direct(page, username, pin)
+                telemetry_manager.end_operation("login", username)
+
+                if not success:
+                    eel.update_account_status(account["id"], "error", 0)
+                    eel.log_message(f"Login gagal untuk {nama}", "error")
+                    telemetry_manager.record_account_failure(
+                        username, "login_failed"
                     )
-                    success = True
-                else:
-                    eel.update_account_status(account["id"], "processing", 30)
-                    eel.log_message(f"Login untuk {nama}...", "info")
+                    browser_manager.close()
+                    continue
 
-                    telemetry_manager.start_operation("login", username)
-                    success, gagal_info = login_direct(page, username, pin)
-                    telemetry_manager.end_operation("login", username)
-
-                    if not success:
-                        eel.update_account_status(account["id"], "error", 0)
-                        eel.log_message(f"Login gagal untuk {nama}", "error")
-                        telemetry_manager.record_account_failure(
-                            username, "login_failed"
-                        )
-                        browser_manager.close()
-                        continue
-
-                    eel.log_message(f"Login berhasil untuk {nama}", "success")
-
-                    # Save session after successful login
-                    if use_session:
-                        browser_manager.save_session(username)
-                        eel.log_message(f"Session disimpan untuk {nama}", "info")
+                eel.log_message(f"Login berhasil untuk {nama}", "success")
 
                 # Ambil stok
                 eel.update_account_status(account["id"], "processing", 50)
@@ -481,16 +464,23 @@ def run_automation_background(accounts, selected_date, settings):
                 # Simpan hasil
                 eel.update_account_status(account["id"], "processing", 90)
 
-                stok_formatted = f"{stok_value} Tabung" if stok_value else "0 Tabung"
-                tabung_formatted = (
-                    f"{tabung_terjual} Tabung"
-                    if tabung_terjual is not None
-                    else "0 Tabung"
-                )
+                # Helper untuk konversi aman ke int
+                def safe_int(val):
+                    try:
+                        if val is None: return 0
+                        return int(str(val).replace('.', '').replace(',', ''))
+                    except:
+                        return 0
+
+                stok_int = safe_int(stok_value)
+                terjual_int = safe_int(tabung_terjual)
+
+                stok_formatted = f"{stok_int} Tabung"
+                tabung_formatted = f"{terjual_int} Tabung"
 
                 status = (
                     "Ada Penjualan"
-                    if (tabung_terjual and tabung_terjual > 0)
+                    if terjual_int > 0
                     else "Tidak Ada Penjualan"
                 )
 
@@ -519,14 +509,25 @@ def run_automation_background(accounts, selected_date, settings):
                     selected_date=save_date,
                 )
 
+                # Record success
+                telemetry_manager.record_account_success(
+                    username,
+                    {
+                        "stok": stok_formatted,
+                        "terjual": tabung_formatted,
+                        "status": status,
+                    },
+                )
+                
+                # Record business metrics (NEW)
+                telemetry_manager.record_business_metrics(stok_int, terjual_int)
+
                 eel.update_account_status(account["id"], "done", 100)
                 eel.log_message(
                     f"Selesai: {nama} - Stok: {stok_formatted}, Terjual: {tabung_formatted}",
                     "success",
                 )
 
-                # Update progress keseluruhan
-                progress_percent = int(((idx + 1) / total_accounts) * 100)
                 eel.update_overall_progress(idx + 1, total_accounts, progress_percent)
 
             except Exception as e:
@@ -760,60 +761,21 @@ def get_dashboard_data():
 @eel.expose
 def get_session_stats():
     """
-    Get session statistics
-
-    Returns:
-        dict: Session stats
+    Get session stats (Dummy implementation as session manager is removed)
     """
-    try:
-        stats = session_manager.get_stats()
-        sessions = session_manager.list_all_sessions()
-        return {"stats": stats, "sessions": sessions}
-    except Exception as e:
-        logger.error(f"Error getting session stats: {str(e)}")
-        return {"stats": {"total": 0, "valid": 0, "expired": 0}, "sessions": []}
+    return {"stats": {"total": 0, "valid": 0, "expired": 0}, "sessions": []}
 
 
 @eel.expose
 def clear_all_sessions():
     """
-    Clear all saved sessions
-
-    Returns:
-        dict: {"success": bool, "count": int, "message": str}
+    Clear all saved sessions (Dummy implementation)
     """
-    try:
-        count = session_manager.clear_all_sessions()
-        return {
-            "success": True,
-            "count": count,
-            "message": f"Berhasil menghapus {count} session",
-        }
-    except Exception as e:
-        logger.error(f"Error clearing sessions: {str(e)}")
-        return {"success": False, "count": 0, "message": f"Error: {str(e)}"}
-
-
-@eel.expose
-def clear_expired_sessions():
-    """
-    Clear hanya expired sessions
-
-    Returns:
-        dict: {"success": bool, "count": int, "message": str}
-    """
-    try:
-        count = session_manager.clear_expired_sessions()
-        return {
-            "success": True,
-            "count": count,
-            "message": f"Berhasil menghapus {count} session yang expired",
-        }
-    except Exception as e:
-        logger.error(f"Error clearing expired sessions: {str(e)}")
-        return {"success": False, "count": 0, "message": f"Error: {str(e)}"}
-
-
+    return {
+        "success": True,
+        "count": 0,
+        "message": "Session manager dinonaktifkan",
+    }
 @eel.expose
 def save_telemetry_report():
     """

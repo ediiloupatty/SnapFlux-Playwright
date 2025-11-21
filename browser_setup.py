@@ -15,9 +15,6 @@ from playwright.sync_api import (
     sync_playwright,
 )
 
-# Import session manager
-from session_manager import get_session_manager
-
 # Setup logging untuk tracking error
 logger = logging.getLogger("browser_setup")
 
@@ -138,17 +135,16 @@ class PlaywrightBrowserManager:
         self.browser: Browser = None
         self.context: BrowserContext = None
         self.page: Page = None
-        self.session_manager = get_session_manager()
 
-    def setup_browser(self, headless=None, username=None, use_session=True):
+    def setup_browser(self, headless=None, username=None, use_session=False):
         """
         Setup Playwright Browser dengan konfigurasi optimal untuk performa maksimal
 
         Args:
             headless (bool): Jika True, browser akan berjalan tanpa GUI untuk performa lebih cepat
                            Jika None, akan menggunakan config default
-            username (str): Username untuk session management (optional)
-            use_session (bool): True untuk load/save session state
+            username (str): Tidak digunakan lagi (legacy parameter)
+            use_session (bool): Tidak digunakan lagi (legacy parameter)
 
         Returns:
             Page: Object Page Playwright yang sudah dikonfigurasi
@@ -249,37 +245,15 @@ class PlaywrightBrowserManager:
                     headless=headless, args=browser_args, timeout=30000
                 )
 
-            # Buat browser context dengan konfigurasi
-            # Check for existing session
-            session_state = None
-            if use_session and username:
-                session_state = self.session_manager.load_session(username)
-                if session_state:
-                    print(f"Loading saved session for {username}")
-                    logger.info(f"Using saved session for {username}")
-
-            # Context dengan konfigurasi
-            if session_state:
-                # Load with session state
-                self.context = self.browser.new_context(
-                    storage_state=session_state,
-                    viewport={"width": 1366, "height": 768},
-                    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                    ignore_https_errors=True,
-                    java_script_enabled=True,
-                    bypass_csp=True,
-                    permissions=[],
-                )
-            else:
-                # Fresh context
-                self.context = self.browser.new_context(
-                    viewport={"width": 1366, "height": 768},
-                    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                    ignore_https_errors=True,
-                    java_script_enabled=True,
-                    bypass_csp=True,
-                    permissions=[],
-                )
+            # Buat browser context dengan konfigurasi (Fresh context)
+            self.context = self.browser.new_context(
+                viewport={"width": 1366, "height": 768},
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                ignore_https_errors=True,
+                java_script_enabled=True,
+                bypass_csp=True,
+                permissions=[],
+            )
 
             # Set default timeouts (dari config)
             self.context.set_default_timeout(DEFAULT_TIMEOUT)
@@ -330,24 +304,6 @@ class PlaywrightBrowserManager:
             logger.error(f"Error setup browser: {str(e)}", exc_info=True)
             self.close()
             return None
-
-    def save_session(self, username: str) -> bool:
-        """
-        Save current browser session state
-
-        Args:
-            username (str): Username untuk session
-
-        Returns:
-            bool: True jika berhasil save
-        """
-        try:
-            if self.context and username:
-                return self.session_manager.save_session(self.context, username)
-            return False
-        except Exception as e:
-            logger.error(f"Failed to save session: {str(e)}")
-            return False
 
     def close(self):
         """

@@ -2,30 +2,36 @@
 
 :root {
     /* Custom Color Palette */
-    --primary: #1a3d64;
-    --primary-hover: #0c2b4e;
-    --primary-light: #e0e7ff;
-    /* Light blue fallback */
+    /* Custom Color Palette - PT. MOYVERONIKA Branding */
+    --primary: #0eb0f2;
+    /* Brand Blue */
+    --primary-hover: #0c96ce;
+    /* Darker Blue for hover */
+    --primary-light: #e7f7fe;
+    /* Very light blue for backgrounds */
 
-    --secondary: #1d546c;
-    --secondary-hover: #1a3d64;
+    --secondary: #64748b;
+    /* Neutral Slate */
+    --secondary-hover: #475569;
 
     --bg-body: #f4f4f4;
-    --bg-sidebar: #0c2b4e;
+    --bg-sidebar: #0f172a;
+    /* Darker Navy/Slate */
     --bg-card: #ffffff;
     --bg-input: #ffffff;
 
-    --text-main: #0c2b4e;
-    --text-muted: #1d546c;
-    --text-light: #64748b;
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --text-light: #94a3b8;
     --text-on-dark: #f4f4f4;
 
     --border-color: #e2e8f0;
-    --border-focus: #1a3d64;
+    --border-focus: #0eb0f2;
 
     --success: #10b981;
     --warning: #f59e0b;
-    --error: #ef4444;
+    --error: #e82531;
+    /* Brand Red */
 
     /* Spacing & Radius */
     --radius-sm: 0.375rem;
@@ -73,7 +79,7 @@ body {
     z-index: 9999;
     transition: width 0.3s ease;
     pointer-events: auto;
-    border-right: 3px solid #4a70a9;
+    border-right: 3px solid var(--primary);
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
 }
 
@@ -95,6 +101,24 @@ body {
     border-radius: var(--radius-lg);
     background: transparent;
     transform: scale(3);
+}
+
+.sidebar.log-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE and Edge */
+}
+
+.log-content::-webkit-scrollbar {
+    display: none;
 }
 
 .sidebar-nav {
@@ -130,12 +154,12 @@ body {
 
 .nav-item.active {
     background: linear-gradient(90deg,
-            rgba(74, 112, 169, 0.8) 0%,
-            rgba(74, 112, 169, 0.4) 100%);
+            rgba(14, 176, 242, 0.8) 0%,
+            rgba(14, 176, 242, 0.4) 100%);
     color: #ffffff;
     border-left: 4px solid #ffffff;
     font-weight: 700;
-    box-shadow: 0 2px 12px rgba(74, 112, 169, 0.5);
+    box-shadow: 0 2px 12px rgba(14, 176, 242, 0.5);
 }
 
 .nav-item i {
@@ -404,6 +428,16 @@ body {
     line-height: 1.5;
     border: 1px solid #2a2a2a;
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE and Edge */
+}
+
+.log-container::-webkit-scrollbar {
+    display: none;
 }
 
 

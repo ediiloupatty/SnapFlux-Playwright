@@ -561,11 +561,11 @@ async function startAutomation() {
   // Confirm
   const confirmStart = await showConfirm(
     `Mulai otomasi untuk <strong>${selectedAccounts.length} akun</strong>?<br><br>` +
-      `<div style="text-align: left; display: inline-block;">` +
-      `<strong>Mode:</strong> ${settings.headless ? "Headless (Background)" : "GUI Terlihat"}<br>` +
-      `<strong>Tanggal:</strong> ${settings.date || "Tanpa filter"}<br>` +
-      `<strong>Delay:</strong> ${settings.delay} detik` +
-      `</div>`,
+    `<div style="text-align: left; display: inline-block;">` +
+    `<strong>Mode:</strong> ${settings.headless ? "Headless (Background)" : "GUI Terlihat"}<br>` +
+    `<strong>Tanggal:</strong> ${settings.date || "Tanpa filter"}<br>` +
+    `<strong>Delay:</strong> ${settings.delay} detik` +
+    `</div>`,
     "Mulai Otomasi?",
   );
 
@@ -1315,17 +1315,15 @@ async function updateDashboardMetrics() {
       updateErrorTracking(metrics.errors);
     }
 
-    // Get session stats
-    const sessionStats = await eel.get_session_stats()();
+    // Update Business Metrics (NEW)
+    const totalSalesEl = document.getElementById("metric-total-sales");
+    const totalStockEl = document.getElementById("metric-total-stock");
 
-    const sessionTotal = document.getElementById("session-total");
-    const sessionValid = document.getElementById("session-valid");
-    const sessionExpired = document.getElementById("session-expired");
+    if (metrics.business_metrics) {
+      if (totalSalesEl) totalSalesEl.textContent = metrics.business_metrics.total_penjualan || 0;
+      if (totalStockEl) totalStockEl.textContent = metrics.business_metrics.total_stok || 0;
+    }
 
-    if (sessionTotal) sessionTotal.textContent = sessionStats.stats.total || 0;
-    if (sessionValid) sessionValid.textContent = sessionStats.stats.valid || 0;
-    if (sessionExpired)
-      sessionExpired.textContent = sessionStats.stats.expired || 0;
   } catch (error) {
     console.error("Error updating dashboard metrics:", error);
   }

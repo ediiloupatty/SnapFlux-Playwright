@@ -49,6 +49,10 @@ class TelemetryManager:
         self.errors = defaultdict(int)  # Error type counts
         self.accounts_processed = []  # Detailed account info
 
+        # Business Metrics
+        self.total_stok_terpantau = 0
+        self.total_penjualan_unit = 0
+
         # Performance metrics
         self.start_times = {}  # Track operation start times
         self.operation_durations = defaultdict(list)  # Operation timings
@@ -168,6 +172,19 @@ class TelemetryManager:
 
         logger.info(f"Account skipped: {username}")
 
+    def record_business_metrics(self, stok: int, penjualan: int):
+        """
+        Record business metrics (stok dan penjualan)
+        
+        Args:
+            stok (int): Jumlah stok awal
+            penjualan (int): Jumlah tabung terjual
+        """
+        if stok > 0:
+            self.total_stok_terpantau += stok
+        if penjualan > 0:
+            self.total_penjualan_unit += penjualan
+
     def get_success_rate(self) -> float:
         """
         Calculate success rate
@@ -252,6 +269,10 @@ class TelemetryManager:
             "failure_rate": round(self.get_failure_rate(), 2),
             "avg_processing_time": round(self.get_average_processing_time(), 2),
             "errors": dict(self.errors),
+            "business_metrics": {
+                "total_stok": self.total_stok_terpantau,
+                "total_penjualan": self.total_penjualan_unit
+            },
             "timestamp": datetime.now().isoformat(),
         }
 
@@ -285,6 +306,10 @@ class TelemetryManager:
                 "successful": self.successful_accounts,
                 "failed": self.failed_accounts,
                 "skipped": self.skipped_accounts,
+            },
+            "business": {
+                "total_stok": self.total_stok_terpantau,
+                "total_penjualan": self.total_penjualan_unit
             },
             "rates": {
                 "success_rate": round(self.get_success_rate(), 2),
@@ -387,7 +412,12 @@ class TelemetryManager:
         self.errors = defaultdict(int)
         self.accounts_processed = []
         self.start_times = {}
+        self.accounts_processed = []
+        self.start_times = {}
         self.operation_durations = defaultdict(list)
+        
+        self.total_stok_terpantau = 0
+        self.total_penjualan_unit = 0
 
         logger.info(f"TelemetryManager reset - New session: {self.session_id}")
 
