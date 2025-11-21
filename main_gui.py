@@ -32,7 +32,7 @@ from data_extractor import get_stock_value_direct, get_tabung_terjual_direct
 from excel_handler import save_to_excel_pivot_format
 from export_handler import export_results_to_excel
 from login_handler import login_direct
-from navigation_handler import click_laporan_penjualan_direct
+from navigation_handler import click_laporan_penjualan_direct, click_date_elements_direct
 from session_manager import get_session_manager
 from telemetry_manager import get_telemetry_manager
 from utils import load_accounts_from_excel, setup_logging
@@ -453,6 +453,15 @@ def run_automation_background(accounts, selected_date, settings):
 
                 tabung_terjual = None
                 if click_laporan_penjualan_direct(page):
+                    # === FILTER TANGGAL (4 STEPS) ===
+                    if selected_date:
+                        eel.log_message(f"Menerapkan filter tanggal: {selected_date.strftime('%d/%m/%Y')}", "info")
+                        if click_date_elements_direct(page, selected_date):
+                            eel.log_message("Filter tanggal berhasil diterapkan", "success")
+                        else:
+                            eel.log_message("Gagal menerapkan filter tanggal", "warning")
+                    # ================================
+
                     tabung_terjual = get_tabung_terjual_direct(page)
                     if tabung_terjual is not None:
                         eel.log_message(

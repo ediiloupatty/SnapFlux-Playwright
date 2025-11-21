@@ -9,6 +9,7 @@ from typing import Optional
 
 from playwright.sync_api import Page
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
+from datetime import datetime
 
 # Import constants dari local module
 try:
@@ -259,216 +260,289 @@ def click_catat_penjualan_direct(page: Page) -> bool:
         return False
 
 
-def click_date_elements_direct(page: Page, target_date) -> bool:
+        return False
+
+
+def get_indo_month(month_int: int) -> tuple:
+    """
+    Helper untuk mendapatkan nama bulan Indonesia (Full dan Singkat)
+    """
+    months = {
+        1: ("Januari", "Jan"),
+        2: ("Februari", "Feb"),
+        3: ("Maret", "Mar"),
+        4: ("April", "Apr"),
+        5: ("Mei", "Mei"),
+        6: ("Juni", "Jun"),
+        7: ("Juli", "Jul"),
+        8: ("Agustus", "Agt"), # Sesuaikan dengan UI: Agt atau Agu
+        9: ("September", "Sep"),
+        10: ("Oktober", "Okt"),
+        11: ("November", "Nov"),
+        12: ("Desember", "Des"),
+    }
+    return months.get(month_int, ("", ""))
+
+
+def click_date_elements_direct(page: Page, target_date: datetime) -> bool:
     """
     ============================================
-    FUNGSI FILTER TANGGAL - DIRECT
+    FUNGSI FILTER TANGGAL - DIRECT (4 STEPS)
     ============================================
-
-    Mengklik elemen date picker dan memilih tanggal tertentu
-
-    Args:
-        page (Page): Playwright Page object
-        target_date (datetime): Tanggal yang ingin dipilih
-
-    Returns:
-        bool: True jika berhasil, False jika gagal
+    
+    Alur:
+    1. Klik "Atur Rentang Waktu"
+    2. Klik Header "Bulan Tahun" (misal: "November 2025") -> Membuka pilihan bulan
+    3. Klik Bulan Singkat (misal: "Nov") -> Membuka pilihan tanggal
+    4. Klik Tanggal (misal: "20") -> Klik 2x
     """
-    print(f"📅 Memilih tanggal: {target_date.strftime('%d/%m/%Y')}...")
+    print(f"📅 Memilih tanggal: {target_date.strftime('%d/%m/%Y')} (4 Steps)...")
 
     try:
         # Tunggu halaman stabil
         time.sleep(1.0)
 
-        # Cari date input/picker
-        date_selectors = [
-            "input[type='date']",
-            "input[placeholder*='Tanggal']",
-            "input[placeholder*='tanggal']",
-            ".date-picker input",
-            "[class*='date'] input",
+        # === STEP 1: Klik Button "Atur Rentang Waktu" ===
+        print("   Step 1: Klik 'Atur Rentang Waktu'...")
+        step1_selectors = [
+            "button:has-text('Atur Rentang Waktu')",
+            "div:has-text('Atur Rentang Waktu')",
+            ".date-range-picker", 
         ]
-
-        date_input = None
-        for selector in date_selectors:
+        
+        step1_success = False
+        for selector in step1_selectors:
             try:
-                input_elem = page.locator(selector).first
-                if input_elem.count() > 0:
-                    try:
-                        input_elem.wait_for(state="visible", timeout=2000)
-                        date_input = input_elem
-                        break
-                    except Exception:
-                        continue
-            except Exception:
+                elem = page.locator(selector).first
+                if elem.count() > 0 and elem.is_visible():
+                    elem.click()
+                    step1_success = True
+                    time.sleep(1.0)
+                    break
+            except:
                 continue
+        
+        if not step1_success:
+            print("   ⚠ Tidak menemukan tombol 'Atur Rentang Waktu', mencoba lanjut...")
 
-        if not date_input:
-            print("✗ Tidak menemukan date input")
+        # Persiapkan data tanggal
+        day = target_date.day
+        month = target_date.month
+        year = target_date.year
+        month_full, month_short = get_indo_month(month)
+        
+        # Format header biasanya "Bulan Tahun" (e.g., "November 2025")
+        # Kita cari tombol yang text-nya ADALAH "Bulan Tahun" saat ini
+        # Karena default kalender biasanya membuka bulan saat ini/terakhir dipilih
+        
+        # Note: Kita perlu mencari tombol header yang sedang aktif.
+        # Biasanya tombol ini berada di bagian atas kalender.
+        
+        # === STEP 2: Klik Header "Bulan Tahun" ===
+        # Tujuannya untuk membuka view pemilihan bulan (Jan, Feb, Mar...)
+        print(f"   Step 2: Klik Header (Mencari tombol dengan tahun '{year}')...")
+        
+        step2_success = False
+        try:
+            # Cari tombol yang mengandung teks Tahun (misal 2025) dan Bulan (misal November)
+            # Locator ini mencari tombol di dalam struktur kalender yang menampilkan "November 2025"
+            # Kita gunakan strategi: cari tombol yang punya text bulan lengkap DAN tahun
+            
+            # Coba 1: Cari tombol spesifik dengan text "Bulan Tahun" (misal "November 2025")
+            # Ini asumsi kalender sedang menampilkan bulan sesuai tanggal hari ini/default
+            # Jika user input bulan lain, kita tetap harus klik header yang TAMPIL SAAT INI dulu
+            
+            # Ambil text dari header kalender yang sedang tampil
+            # Biasanya class-nya mantine-Calendar-monthLevelGroup atau sejenisnya
+            # Kita cari tombol yang ada di bagian atas popover
+            
+            # Generic locator untuk header: tombol yang mengandung tahun target
+            header_btn = page.locator(f"button:has-text('{year}')").first
+            
+            if header_btn.count() > 0 and header_btn.is_visible():
+                header_text = header_btn.text_content()
+                print(f"      -> Menemukan header: '{header_text}'")
+                header_btn.click()
+                step2_success = True
+                time.sleep(1.0) # Tunggu grid bulan muncul
+            else:
+                print(f"      ⚠ Tidak menemukan tombol header dengan tahun {year}")
+                
+        except Exception as e:
+            print(f"   ⚠ Warning Step 2: {e}")
+
+        # === STEP 3: Klik Bulan Singkat (Jan, Feb, ... Nov, Des) ===
+        # Grid bulan seharusnya sudah terbuka sekarang
+        print(f"   Step 3: Klik Bulan '{month_short}'...")
+        
+        step3_success = False
+        try:
+            # Cari tombol dengan text bulan singkat persis
+            # Gunakan text-is atau has-text tapi pastikan itu tombol pilihan bulan
+            month_btn = page.locator(f"button:text-is('{month_short}')").first
+            
+            if month_btn.count() == 0:
+                # Coba variasi lain jika Agt/Agu
+                if month == 8:
+                    alt_aug = "Agu" if month_short == "Agt" else "Agt"
+                    month_btn = page.locator(f"button:text-is('{alt_aug}')").first
+            
+            if month_btn.count() > 0 and month_btn.is_visible():
+                month_btn.click()
+                step3_success = True
+                print(f"      -> Berhasil klik bulan {month_short}")
+                time.sleep(1.0) # Tunggu grid tanggal muncul
+            else:
+                print(f"      ⚠ Tidak menemukan tombol bulan '{month_short}'")
+                
+        except Exception as e:
+            print(f"   ⚠ Warning Step 3: {e}")
+
+        # === STEP 4: Klik Tanggal (Specific Day) - KLIK 2X ===
+        print(f"   Step 4: Klik Tanggal '{day}' (2x)...")
+
+        try:
+            # Cari tombol tanggal. Hati-hati dengan angka yang sama di bulan sebelumnya/berikutnya.
+            # Biasanya tanggal aktif punya class tertentu atau tidak punya class 'outside'/'muted'
+            
+            # Locator spesifik untuk tanggal di kalender (hindari tanggal dari bulan lain jika mungkin)
+            # Menggunakan text exact match untuk angka
+            date_btn = page.locator(f"button:text-is('{day}')").first
+            
+            if date_btn.count() == 0:
+                 # Fallback: contains text
+                 date_btn = page.locator(f"button:has-text('{day}')").first
+            
+            if date_btn.count() > 0:
+                # Klik pertama
+                date_btn.click()
+                print(f"      -> Klik pertama tanggal {day}")
+                time.sleep(1.0) # Delay diperlama agar tidak dianggap double-click instan
+                
+                # Klik kedua
+                date_btn.click()
+                print(f"      -> Klik kedua tanggal {day}")
+                
+                print(f"   ✓ Berhasil klik tanggal {day} (2x)")
+                time.sleep(1.5) # Tunggu efek UI selesai
+                return True
+            else:
+                print(f"   ✗ Gagal menemukan tombol tanggal {day}")
+                return False
+                
+        except Exception as e:
+            print(f"   ✗ Error Step 4: {e}")
             return False
 
-        # Format tanggal sesuai kebutuhan (biasanya YYYY-MM-DD atau DD/MM/YYYY)
-        date_string = target_date.strftime("%Y-%m-%d")
-
-        # Isi date input
-        date_input.click()
-        time.sleep(0.5)
-        date_input.fill(date_string)
-        print(f"✓ Tanggal berhasil diisi: {date_string}")
-
-        # Tunggu dan klik tombol apply/submit jika ada
-        time.sleep(0.5)
-
-        apply_selectors = [
-            "button:has-text('Terapkan')",
-            "button:has-text('Apply')",
-            "button:has-text('Filter')",
-            "button[type='submit']",
-        ]
-
-        for selector in apply_selectors:
-            try:
-                apply_btn = page.locator(selector).first
-                if apply_btn.count() > 0:
-                    try:
-                        apply_btn.wait_for(state="visible", timeout=1000)
-                        apply_btn.click()
-                        print("✓ Tombol apply berhasil diklik")
-                        time.sleep(1.5)
-                        break
-                    except Exception:
-                        continue
-            except Exception:
-                continue
-
-        return True
-
     except Exception as e:
-        print(f"✗ Error set tanggal: {str(e)}")
+        print(f"✗ Error set tanggal (4-step): {str(e)}")
         logger.error(f"Error click_date_elements_direct: {str(e)}", exc_info=True)
         return False
 
 
-def click_date_elements_rekap_penjualan(page: Page, target_date) -> bool:
+def click_date_elements_rekap_penjualan(page: Page, target_date: datetime) -> bool:
     """
     ============================================
-    FUNGSI FILTER TANGGAL REKAP PENJUALAN
+    FUNGSI FILTER TANGGAL REKAP PENJUALAN (4 STEPS)
     ============================================
-
-    Mengklik elemen date picker di halaman Rekap Penjualan dan memilih tanggal
-
-    Args:
-        page (Page): Playwright Page object di halaman Rekap Penjualan
-        target_date (datetime): Tanggal yang ingin dipilih
-
-    Returns:
-        bool: True jika berhasil, False jika gagal
+    
+    Implementasi logika 4 langkah untuk halaman Rekap Penjualan
     """
-    print(
-        f"📅 Memilih tanggal di Rekap Penjualan: {target_date.strftime('%d/%m/%Y')}..."
-    )
+    print(f"📅 Memilih tanggal Rekap: {target_date.strftime('%d/%m/%Y')} (4 Steps)...")
 
     try:
-        # Sama seperti click_date_elements_direct
-        # tapi dengan selector yang lebih spesifik untuk Rekap Penjualan
-
         time.sleep(1.0)
-
-        # Cari date range picker (start date dan end date)
-        date_range_selectors = [
-            "input[placeholder*='Dari']",
-            "input[placeholder*='dari']",
-            "input[placeholder*='Mulai']",
-            "input[placeholder*='mulai']",
-            "input[name='startDate']",
-            "input[name='start_date']",
+        
+        # === STEP 1: Klik Button "Atur Rentang Waktu" ===
+        # Di rekap penjualan mungkin labelnya berbeda atau sama
+        print("   Step 1: Klik 'Atur Rentang Waktu'...")
+        step1_selectors = [
+            "button:has-text('Atur Rentang Waktu')",
+            "div:has-text('Atur Rentang Waktu')",
+            "input[placeholder*='Pilih tanggal']", # Kadang berupa input
         ]
-
-        start_date_input = None
-        for selector in date_range_selectors:
+        
+        step1_success = False
+        for selector in step1_selectors:
             try:
-                input_elem = page.locator(selector).first
-                if input_elem.count() > 0:
-                    try:
-                        input_elem.wait_for(state="visible", timeout=2000)
-                        start_date_input = input_elem
-                        break
-                    except Exception:
-                        continue
-            except Exception:
+                elem = page.locator(selector).first
+                if elem.count() > 0:
+                    elem.click()
+                    step1_success = True
+                    time.sleep(1.0)
+                    break
+            except:
                 continue
+                
+        if not step1_success:
+            print("   ⚠ Tidak menemukan tombol 'Atur Rentang Waktu' di Rekap")
 
-        if start_date_input:
-            date_string = target_date.strftime("%Y-%m-%d")
-            start_date_input.click()
-            time.sleep(0.5)
-            start_date_input.fill(date_string)
-            print(f"✓ Tanggal mulai berhasil diisi: {date_string}")
+        # Persiapkan data
+        day = target_date.day
+        month = target_date.month
+        year = target_date.year
+        month_full, month_short = get_indo_month(month)
+        target_month_year = f"{month_full} {year}"
 
-        # Cari end date jika ada
-        end_date_selectors = [
-            "input[placeholder*='Sampai']",
-            "input[placeholder*='sampai']",
-            "input[placeholder*='Hingga']",
-            "input[placeholder*='hingga']",
-            "input[name='endDate']",
-            "input[name='end_date']",
-        ]
+        # === STEP 2: Klik Header "Bulan Tahun" ===
+        print(f"   Step 2: Klik Header (Mencari tombol dengan tahun '{year}')...")
+        try:
+            header_btn = page.locator(f"button:has-text('{year}')").first
+            if header_btn.count() > 0:
+                print(f"      -> Menemukan header: '{header_btn.text_content()}'")
+                header_btn.click()
+                time.sleep(1.0)
+            else:
+                print(f"      ⚠ Tidak menemukan tombol header tahun {year}")
+        except Exception:
+            pass
 
-        end_date_input = None
-        for selector in end_date_selectors:
-            try:
-                input_elem = page.locator(selector).first
-                if input_elem.count() > 0:
-                    try:
-                        input_elem.wait_for(state="visible", timeout=2000)
-                        end_date_input = input_elem
-                        break
-                    except Exception:
-                        continue
-            except Exception:
-                continue
+        # === STEP 3: Klik Bulan Singkat ===
+        print(f"   Step 3: Klik Bulan '{month_short}'...")
+        try:
+            month_btn = page.locator(f"button:text-is('{month_short}')").first
+            
+            if month_btn.count() == 0 and month == 8:
+                 alt_aug = "Agu" if month_short == "Agt" else "Agt"
+                 month_btn = page.locator(f"button:text-is('{alt_aug}')").first
 
-        if end_date_input:
-            date_string = target_date.strftime("%Y-%m-%d")
-            end_date_input.click()
-            time.sleep(0.5)
-            end_date_input.fill(date_string)
-            print(f"✓ Tanggal akhir berhasil diisi: {date_string}")
+            if month_btn.count() > 0:
+                month_btn.click()
+                print(f"      -> Berhasil klik bulan {month_short}")
+                time.sleep(1.0)
+            else:
+                print(f"      ⚠ Tidak menemukan tombol bulan '{month_short}'")
+        except Exception:
+            pass
 
-        # Klik tombol apply/filter
-        time.sleep(0.5)
-
-        apply_selectors = [
-            "button:has-text('Terapkan')",
-            "button:has-text('Apply')",
-            "button:has-text('Filter')",
-            "button:has-text('Cari')",
-            "button[type='submit']",
-        ]
-
-        for selector in apply_selectors:
-            try:
-                apply_btn = page.locator(selector).first
-                if apply_btn.count() > 0:
-                    try:
-                        apply_btn.wait_for(state="visible", timeout=1000)
-                        apply_btn.click()
-                        print("✓ Tombol filter berhasil diklik")
-                        time.sleep(2.0)
-                        break
-                    except Exception:
-                        continue
-            except Exception:
-                continue
-
-        return True
+        # === STEP 4: Klik "Tanggal" (2x) ===
+        print(f"   Step 4: Klik Tanggal '{day}' (2x)...")
+        try:
+            date_btn = page.locator(f"button:text-is('{day}')").first
+            if date_btn.count() == 0:
+                 date_btn = page.locator(f"button:has-text('{day}')").first
+            
+            if date_btn.count() > 0:
+                date_btn.click()
+                print(f"      -> Klik pertama tanggal {day}")
+                time.sleep(1.0) # Delay diperlama
+                
+                date_btn.click()
+                print(f"      -> Klik kedua tanggal {day}")
+                
+                print(f"   ✓ Berhasil klik tanggal {day} (2x)")
+                time.sleep(1.5) # Tunggu efek UI
+                return True
+            else:
+                print(f"   ✗ Gagal menemukan tombol tanggal {day}")
+                return False
+        except Exception as e:
+            print(f"   ✗ Error Step 4: {e}")
+            return False
 
     except Exception as e:
-        print(f"✗ Error set tanggal rekap: {str(e)}")
-        logger.error(
-            f"Error click_date_elements_rekap_penjualan: {str(e)}", exc_info=True
-        )
+        print(f"✗ Error set tanggal rekap (4-step): {str(e)}")
+        logger.error(f"Error click_date_elements_rekap_penjualan: {str(e)}", exc_info=True)
         return False
 
 

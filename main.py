@@ -19,7 +19,7 @@ from PlayWRight.data_extractor import get_stock_value_direct, get_tabung_terjual
 # Import utility dari PlayWRight local modules
 from PlayWRight.excel_handler import save_to_excel_pivot_format
 from PlayWRight.login_handler import login_direct
-from PlayWRight.navigation_handler import click_laporan_penjualan_direct
+from PlayWRight.navigation_handler import click_laporan_penjualan_direct, click_date_elements_direct
 from PlayWRight.utils import (
     get_date_input,
     load_accounts_from_excel,
@@ -157,6 +157,15 @@ def run_cek_stok_playwright(accounts, selected_date, headless_mode=None):
             # Navigasi ke Laporan Penjualan
             if click_laporan_penjualan_direct(page):
                 print("✓ Berhasil masuk ke Laporan Penjualan")
+
+                # === FILTER TANGGAL (4 STEPS) ===
+                if selected_date:
+                    print(f"📅 Menerapkan filter tanggal: {selected_date.strftime('%d/%m/%Y')}")
+                    if click_date_elements_direct(page, selected_date):
+                        print("✓ Filter tanggal berhasil diterapkan")
+                    else:
+                        print("⚠ Gagal menerapkan filter tanggal")
+                # ================================
 
                 # Ambil data tabung terjual langsung dari Data Penjualan
                 # (tidak perlu klik Rekap Penjualan)
