@@ -1,282 +1,1322 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>SnapFlux Automation</title>
+        <script src="/eel.js"></script>
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        />
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <link rel="stylesheet" href="style.css" />
+    </head>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SnapFlux Automation</title>
-    <script src="/eel.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <link rel="stylesheet" href="style.css">
-</head>
-
-<body>
-
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="sidebar-header">
-            <div class="logo">
-                <img src="img/logo.png" alt="SnapFlux Logo" class="logo-image">
-                <div class="logo-text">
-                    <h1>SnapFlux</h1>
-                </div>
-            </div>
-        </div>
-
-        <nav class="sidebar-nav">
-            <div class="nav-item active" onclick="showPage('dashboard')">
-                <i class="fas fa-chart-simple"></i>
-                <span>Dashboard</span>
-            </div>
-            <div class="nav-item" onclick="showPage('automation')">
-                <i class="fas fa-bolt"></i>
-                <span>Automation</span>
-            </div>
-            <div class="nav-item" onclick="showPage('results')">
-                <i class="fas fa-file-lines"></i>
-                <span>Results</span>
-            </div>
-            <div class="nav-item" onclick="showPage('settings')">
-                <i class="fas fa-sliders"></i>
-                <span>Settings</span>
-            </div>
-        </nav>
-
-        <div class="sidebar-footer">
-            <div class="flex items-center gap-2 text-sm text-muted">
-                <div class="account-status-indicator processing"></div>
-                <span id="status-text">Ready</span>
-            </div>
-        </div>
-    </aside>
-
-    <!-- Main Content -->
-    <main class="main-wrapper">
-        <!-- Header -->
-        <header class="header">
-            <h2 class="page-title" id="page-title">Dashboard</h2>
-            <div class="flex items-center gap-4">
-                <button class="btn btn-secondary text-sm" onclick="openResultsFolder()">
-                    <i class="fas fa-folder-open"></i> Folder Output
-                </button>
-            </div>
-        </header>
-
-        <div class="container">
-
-            <!-- DASHBOARD PAGE -->
-            <section id="dashboard-page" class="page-section active">
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-value" id="total-accounts">0</div>
-                        <div class="stat-label">Total Akun</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="success-count" style="color: var(--success)">0</div>
-                        <div class="stat-label">Berhasil</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="failed-count" style="color: var(--error)">0</div>
-                        <div class="stat-label">Gagal</div>
+    <body>
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <img
+                        src="img/logo.png"
+                        alt="SnapFlux Logo"
+                        class="logo-image"
+                    />
+                    <div class="logo-text">
+                        <h1>SnapFlux</h1>
                     </div>
                 </div>
-            </section>
+            </div>
 
-            <!-- AUTOMATION PAGE -->
-            <section id="automation-page" class="page-section">
-                <div class="card mb-4">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="form-label" style="margin:0">Kontrol Automation</h3>
-                        <div class="flex gap-2">
-                            <button id="start-btn" class="btn btn-primary" onclick="startAutomation()">
-                                <i class="fas fa-play"></i> Start
-                            </button>
-                            <button id="pause-btn" class="btn btn-secondary" onclick="pauseAutomation()" disabled>
-                                <i class="fas fa-pause"></i> Pause
-                            </button>
-                            <button id="stop-btn" class="btn btn-danger" onclick="stopAutomation()" disabled>
-                                <i class="fas fa-stop"></i> Stop
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4 mb-4"
-                        style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        <div class="form-group" style="margin:0">
-                            <label class="form-label">File Excel Akun</label>
-                            <div class="flex items-center gap-2">
-                                <input type="file" id="excel-file-input" accept=".xlsx, .xls" style="display: none;"
-                                    onchange="handleFileSelect(this)">
-                                <button class="btn btn-primary btn-sm"
-                                    onclick="document.getElementById('excel-file-input').click()">
-                                    <i class="fas fa-folder-open"></i> Pilih File
-                                </button>
-                                <span id="selected-filename" class="text-sm text-muted truncate"
-                                    style="max-width: 200px;">Belum ada file</span>
-                            </div>
-                        </div>
-                        <div class="form-group" style="margin:0">
-                            <label class="form-label">Filter Tanggal (Opsional)</label>
-                            <div class="input-icon-wrapper">
-                                <i class="fas fa-calendar-alt input-icon"></i>
-                                <input type="date" id="date-filter" class="form-input with-icon">
-                            </div>
-                        </div>
-                    </div>
+            <nav class="sidebar-nav">
+                <div class="nav-item active" onclick="showPage('dashboard')">
+                    <i class="fas fa-chart-simple"></i>
+                    <span>Dasbor</span>
                 </div>
+                <div class="nav-item" onclick="showPage('automation')">
+                    <i class="fas fa-bolt"></i>
+                    <span>Otomasi</span>
+                </div>
+                <div class="nav-item" onclick="showPage('results')">
+                    <i class="fas fa-file-lines"></i>
+                    <span>Hasil</span>
+                </div>
+                <div class="nav-item" onclick="showPage('settings')">
+                    <i class="fas fa-sliders"></i>
+                    <span>Pengaturan</span>
+                </div>
+            </nav>
 
-                <!-- Processing View (Prominent Card) -->
-                <div id="processing-view" class="card mb-4 hidden" style="position: relative; overflow: hidden;">
-                    <!-- Background Status Indicator -->
+            <div class="sidebar-footer">
+                <div class="flex items-center gap-2 text-sm text-muted">
+                    <div class="account-status-indicator processing"></div>
+                    <span id="status-text">Siap</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-wrapper">
+            <!-- Header -->
+            <header class="header">
+                <div style="flex: 1">
+                    <!-- Breadcrumb -->
                     <div
-                        style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--primary);">
+                        style="
+                            display: flex;
+                            align-items: center;
+                            gap: 0.5rem;
+                            margin-bottom: 0.35rem;
+                            font-size: 0.8rem;
+                            color: var(--text-muted);
+                        "
+                    >
+                        <i class="fas fa-home" style="font-size: 0.75rem"></i>
+                        <span>/</span>
+                        <span id="breadcrumb-text">Dasbor</span>
                     </div>
 
-                    <div style="padding-left: 1rem;">
-                        <!-- Top Row: Status -->
-                        <div class="mb-4">
-                            <div id="processing-status" class="text-primary font-bold text-sm flex items-center gap-2">
-                                <span class="processing-loader-xs"></span>
-                                Menunggu...
-                            </div>
+                    <!-- Page Title with Icon -->
+                    <div
+                        style="display: flex; align-items: center; gap: 0.75rem"
+                    >
+                        <div
+                            id="page-icon"
+                            style="
+                                width: 40px;
+                                height: 40px;
+                                background: linear-gradient(
+                                    135deg,
+                                    var(--primary) 0%,
+                                    #6366f1 100%
+                                );
+                                border-radius: 10px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                color: white;
+                                font-size: 1.1rem;
+                            "
+                        >
+                            <i class="fas fa-chart-simple"></i>
                         </div>
+                        <div>
+                            <h2
+                                class="page-title"
+                                id="page-title"
+                                style="margin: 0"
+                            >
+                                Dasbor
+                            </h2>
+                            <p
+                                id="page-subtitle"
+                                style="
+                                    font-size: 0.85rem;
+                                    color: var(--text-muted);
+                                    margin: 0;
+                                    margin-top: 0.15rem;
+                                "
+                            >
+                                Pantau performa otomasi secara realtime
+                            </p>
+                        </div>
+                    </div>
+                </div>
 
-                        <!-- Middle Row: Account & Stats -->
-                        <div class="flex justify-between items-end mb-4">
-                            <div>
-                                <h2 id="processing-name" class="text-2xl font-bold text-main mb-1">Memuat...</h2>
-                                <p id="processing-username" class="text-muted font-mono">---</p>
+                <!-- Right Side Info -->
+                <div
+                    style="
+                        display: flex;
+                        align-items: center;
+                        gap: 1.5rem;
+                        padding-left: 1.5rem;
+                        border-left: 1px solid var(--border-color);
+                    "
+                >
+                    <!-- Current Time -->
+                    <div style="text-align: right">
+                        <div
+                            style="
+                                font-size: 0.75rem;
+                                color: var(--text-muted);
+                                margin-bottom: 0.15rem;
+                            "
+                        >
+                            Waktu Saat Ini
+                        </div>
+                        <div
+                            id="header-time"
+                            style="
+                                font-size: 0.95rem;
+                                font-weight: 600;
+                                color: var(--text-main);
+                                font-family:
+                                    &quot;JetBrains Mono&quot;, monospace;
+                            "
+                        >
+                            --:--:--
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="container">
+                <!-- DASHBOARD PAGE -->
+                <section id="dashboard-page" class="page-section active">
+                    <!-- Main Stats -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="total-accounts">0</div>
+                            <div class="stat-label">Total Akun</div>
+                        </div>
+                        <div class="stat-card">
+                            <div
+                                class="stat-value"
+                                id="success-count"
+                                style="color: var(--success)"
+                            >
+                                0
                             </div>
-                            <div class="text-right">
-                                <div class="text-xs text-muted mb-1">Urutan</div>
-                                <div class="text-xl font-bold text-main">
-                                    <span id="processing-current">0</span><span class="text-muted text-sm">/</span><span
-                                        id="processing-total">0</span>
+                            <div class="stat-label">Berhasil</div>
+                        </div>
+                        <div class="stat-card">
+                            <div
+                                class="stat-value"
+                                id="failed-count"
+                                style="color: var(--error)"
+                            >
+                                0
+                            </div>
+                            <div class="stat-label">Gagal</div>
+                        </div>
+                    </div>
+
+                    <!-- Monitoring Dashboard -->
+                    <div
+                        style="
+                            display: grid;
+                            grid-template-columns: 1fr 1fr;
+                            gap: 1rem;
+                            margin-top: 1.5rem;
+                        "
+                    >
+                        <!-- Performance Metrics -->
+                        <div class="card">
+                            <h3
+                                style="
+                                    font-size: 1.1rem;
+                                    font-weight: 600;
+                                    margin-bottom: 1rem;
+                                    color: var(--text-main);
+                                "
+                            >
+                                <i
+                                    class="fas fa-gauge-high"
+                                    style="color: var(--primary)"
+                                ></i>
+                                Kinerja
+                            </h3>
+                            <div
+                                style="
+                                    display: flex;
+                                    flex-direction: column;
+                                    gap: 0.75rem;
+                                "
+                            >
+                                <div
+                                    style="
+                                        display: flex;
+                                        justify-content: space-between;
+                                        align-items: center;
+                                    "
+                                >
+                                    <span
+                                        style="
+                                            color: var(--text-muted);
+                                            font-size: 0.875rem;
+                                        "
+                                        >Tingkat Keberhasilan</span
+                                    >
+                                    <span
+                                        id="metric-success-rate"
+                                        style="
+                                            font-weight: 700;
+                                            color: var(--success);
+                                        "
+                                        >0%</span
+                                    >
+                                </div>
+                                <div
+                                    style="
+                                        display: flex;
+                                        justify-content: space-between;
+                                        align-items: center;
+                                    "
+                                >
+                                    <span
+                                        style="
+                                            color: var(--text-muted);
+                                            font-size: 0.875rem;
+                                        "
+                                        >Waktu Proses Rata-rata</span
+                                    >
+                                    <span
+                                        id="metric-avg-time"
+                                        style="
+                                            font-weight: 700;
+                                            color: var(--primary);
+                                        "
+                                        >0s</span
+                                    >
+                                </div>
+                                <div
+                                    style="
+                                        display: flex;
+                                        justify-content: space-between;
+                                        align-items: center;
+                                    "
+                                >
+                                    <span
+                                        style="
+                                            color: var(--text-muted);
+                                            font-size: 0.875rem;
+                                        "
+                                        >Durasi Sesi</span
+                                    >
+                                    <span
+                                        id="metric-session-duration"
+                                        style="font-weight: 700"
+                                        >0s</span
+                                    >
+                                </div>
+                                <div
+                                    style="
+                                        display: flex;
+                                        justify-content: space-between;
+                                        align-items: center;
+                                    "
+                                >
+                                    <span
+                                        style="
+                                            color: var(--text-muted);
+                                            font-size: 0.875rem;
+                                        "
+                                        >Laju Proses</span
+                                    >
+                                    <span
+                                        id="metric-throughput"
+                                        style="font-weight: 700"
+                                        >0/min</span
+                                    >
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Bottom Row: Progress & Action -->
-                        <div class="flex items-center gap-4">
-                            <div class="flex-1">
-                                <div class="flex justify-between text-xs mb-1">
-                                    <span class="text-muted">Progress</span>
-                                    <span id="processing-percent" class="font-bold text-primary">0%</span>
+                        <!-- Session Management -->
+                        <div class="card">
+                            <h3
+                                style="
+                                    font-size: 1.1rem;
+                                    font-weight: 600;
+                                    margin-bottom: 1rem;
+                                    color: var(--text-main);
+                                "
+                            >
+                                <i
+                                    class="fas fa-cookie-bite"
+                                    style="color: var(--primary)"
+                                ></i>
+                                Sesi
+                            </h3>
+                            <div
+                                style="
+                                    display: flex;
+                                    flex-direction: column;
+                                    gap: 0.75rem;
+                                "
+                            >
+                                <div
+                                    style="
+                                        display: flex;
+                                        justify-content: space-between;
+                                        align-items: center;
+                                    "
+                                >
+                                    <span
+                                        style="
+                                            color: var(--text-muted);
+                                            font-size: 0.875rem;
+                                        "
+                                        >Total Tersimpan</span
+                                    >
+                                    <span
+                                        id="session-total"
+                                        style="font-weight: 700"
+                                        >0</span
+                                    >
                                 </div>
-                                <div style="height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden;">
-                                    <div id="processing-progress-fill"
-                                        style="width: 0%; height: 100%; background: var(--primary); transition: width 0.3s ease;">
+                                <div
+                                    style="
+                                        display: flex;
+                                        justify-content: space-between;
+                                        align-items: center;
+                                    "
+                                >
+                                    <span
+                                        style="
+                                            color: var(--text-muted);
+                                            font-size: 0.875rem;
+                                        "
+                                        >Sesi Valid</span
+                                    >
+                                    <span
+                                        id="session-valid"
+                                        style="
+                                            font-weight: 700;
+                                            color: var(--success);
+                                        "
+                                        >0</span
+                                    >
+                                </div>
+                                <div
+                                    style="
+                                        display: flex;
+                                        justify-content: space-between;
+                                        align-items: center;
+                                    "
+                                >
+                                    <span
+                                        style="
+                                            color: var(--text-muted);
+                                            font-size: 0.875rem;
+                                        "
+                                        >Kedaluwarsa</span
+                                    >
+                                    <span
+                                        id="session-expired"
+                                        style="
+                                            font-weight: 700;
+                                            color: var(--error);
+                                        "
+                                        >0</span
+                                    >
+                                </div>
+                                <div
+                                    style="
+                                        display: flex;
+                                        gap: 0.5rem;
+                                        margin-top: 0.5rem;
+                                    "
+                                >
+                                    <button
+                                        class="btn btn-secondary btn-sm"
+                                        onclick="clearExpiredSessions()"
+                                        style="flex: 1; font-size: 0.75rem"
+                                    >
+                                        <i class="fas fa-broom"></i> Hapus
+                                        Kedaluwarsa
+                                    </button>
+                                    <button
+                                        class="btn btn-danger btn-sm"
+                                        onclick="clearAllSessions()"
+                                        style="flex: 1; font-size: 0.75rem"
+                                    >
+                                        <i class="fas fa-trash"></i> Hapus Semua
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Error Tracking (if errors exist) -->
+                    <div
+                        id="error-tracking"
+                        class="card"
+                        style="margin-top: 1.5rem; display: none"
+                    >
+                        <h3
+                            style="
+                                font-size: 1.1rem;
+                                font-weight: 600;
+                                margin-bottom: 1rem;
+                                color: var(--text-main);
+                            "
+                        >
+                            <i
+                                class="fas fa-triangle-exclamation"
+                                style="color: var(--error)"
+                            ></i>
+                            Error
+                        </h3>
+                        <div
+                            id="error-list"
+                            style="
+                                display: flex;
+                                flex-direction: column;
+                                gap: 0.5rem;
+                            "
+                        >
+                            <!-- Error items will be inserted here -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- AUTOMATION PAGE -->
+                <section id="automation-page" class="page-section">
+                    <div class="card mb-4">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="form-label" style="margin: 0">
+                                Kontrol Otomasi
+                            </h3>
+                            <div class="flex gap-2">
+                                <button
+                                    id="start-btn"
+                                    class="btn btn-primary"
+                                    onclick="startAutomation()"
+                                >
+                                    <i class="fas fa-play"></i> Mulai
+                                </button>
+                                <button
+                                    id="pause-btn"
+                                    class="btn btn-secondary"
+                                    onclick="pauseAutomation()"
+                                    disabled
+                                >
+                                    <i class="fas fa-pause"></i> Jeda
+                                </button>
+                                <button
+                                    id="stop-btn"
+                                    class="btn btn-danger"
+                                    onclick="stopAutomation()"
+                                    disabled
+                                >
+                                    <i class="fas fa-stop"></i> Berhenti
+                                </button>
+                            </div>
+                        </div>
+
+                        <div
+                            class="grid grid-cols-2 gap-4 mb-4"
+                            style="
+                                display: grid;
+                                grid-template-columns: 1fr 1fr;
+                                gap: 1rem;
+                            "
+                        >
+                            <div class="form-group" style="margin: 0">
+                                <label class="form-label"
+                                    >File Excel Akun</label
+                                >
+                                <div class="flex items-center gap-2">
+                                    <input
+                                        type="file"
+                                        id="excel-file-input"
+                                        accept=".xlsx, .xls"
+                                        style="display: none"
+                                        onchange="handleFileSelect(this)"
+                                    />
+                                    <button
+                                        class="btn btn-primary btn-sm"
+                                        onclick="document.getElementById('excel-file-input').click()"
+                                    >
+                                        <i class="fas fa-folder-open"></i> Pilih
+                                        File
+                                    </button>
+                                    <span
+                                        id="selected-filename"
+                                        class="text-sm text-muted truncate"
+                                        style="max-width: 200px"
+                                        >Belum ada file</span
+                                    >
+                                </div>
+                            </div>
+                            <div class="form-group" style="margin: 0">
+                                <label class="form-label"
+                                    >Filter Tanggal (Opsional)</label
+                                >
+                                <div class="input-icon-wrapper">
+                                    <input
+                                        type="date"
+                                        id="date-filter"
+                                        class="form-input"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Processing View (Prominent Card) -->
+                    <div
+                        id="processing-view"
+                        class="card mb-4 hidden"
+                        style="position: relative; overflow: hidden"
+                    >
+                        <!-- Background Status Indicator -->
+                        <div
+                            style="
+                                position: absolute;
+                                top: 0;
+                                left: 0;
+                                width: 4px;
+                                height: 100%;
+                                background: linear-gradient(
+                                    180deg,
+                                    var(--primary) 0%,
+                                    #6366f1 100%
+                                );
+                            "
+                        ></div>
+
+                        <div style="padding-left: 1rem">
+                            <!-- Top Row: Status with animated badge -->
+                            <div class="mb-4">
+                                <div
+                                    id="processing-status"
+                                    class="text-primary font-bold text-sm flex items-center gap-2"
+                                    style="
+                                        background: rgba(74, 112, 169, 0.1);
+                                        display: inline-flex;
+                                        padding: 0.4rem 0.75rem;
+                                        border-radius: 6px;
+                                    "
+                                >
+                                    <span class="processing-loader-xs"></span>
+                                    <span>Menunggu...</span>
+                                </div>
+                            </div>
+
+                            <!-- Main Content Grid: Chart + Info -->
+                            <div
+                                style="
+                                    display: grid;
+                                    grid-template-columns: auto 1fr auto;
+                                    gap: 1.5rem;
+                                    align-items: center;
+                                    margin-bottom: 1.25rem;
+                                "
+                            >
+                                <!-- Circular Progress Chart -->
+                                <div
+                                    style="
+                                        position: relative;
+                                        width: 80px;
+                                        height: 80px;
+                                    "
+                                >
+                                    <svg
+                                        width="80"
+                                        height="80"
+                                        viewBox="0 0 80 80"
+                                        style="transform: rotate(-90deg)"
+                                    >
+                                        <!-- Background Circle -->
+                                        <circle
+                                            cx="40"
+                                            cy="40"
+                                            r="34"
+                                            fill="none"
+                                            stroke="#e5e7eb"
+                                            stroke-width="6"
+                                        ></circle>
+                                        <!-- Progress Circle -->
+                                        <circle
+                                            id="processing-progress-circle"
+                                            cx="40"
+                                            cy="40"
+                                            r="34"
+                                            fill="none"
+                                            stroke="url(#progressGradient)"
+                                            stroke-width="6"
+                                            stroke-dasharray="213.63"
+                                            stroke-dashoffset="213.63"
+                                            stroke-linecap="round"
+                                            style="
+                                                transition: stroke-dashoffset
+                                                    0.3s ease;
+                                            "
+                                        ></circle>
+                                        <!-- Gradient Definition -->
+                                        <defs>
+                                            <linearGradient
+                                                id="progressGradient"
+                                                x1="0%"
+                                                y1="0%"
+                                                x2="100%"
+                                                y2="100%"
+                                            >
+                                                <stop
+                                                    offset="0%"
+                                                    style="
+                                                        stop-color: #4a70a9;
+                                                        stop-opacity: 1;
+                                                    "
+                                                />
+                                                <stop
+                                                    offset="100%"
+                                                    style="
+                                                        stop-color: #6366f1;
+                                                        stop-opacity: 1;
+                                                    "
+                                                />
+                                            </linearGradient>
+                                        </defs>
+                                    </svg>
+                                    <!-- Percentage in center -->
+                                    <div
+                                        style="
+                                            position: absolute;
+                                            top: 50%;
+                                            left: 50%;
+                                            transform: translate(-50%, -50%);
+                                            text-align: center;
+                                        "
+                                    >
+                                        <div
+                                            id="processing-percent-chart"
+                                            style="
+                                                font-size: 0.95rem;
+                                                font-weight: 700;
+                                                color: var(--primary);
+                                                line-height: 1;
+                                            "
+                                        >
+                                            0%
+                                        </div>
                                     </div>
                                 </div>
+
+                                <!-- Account Info -->
+                                <div style="min-width: 0">
+                                    <h2
+                                        id="processing-name"
+                                        class="text-2xl font-bold text-main mb-1"
+                                        style="
+                                            white-space: nowrap;
+                                            overflow: hidden;
+                                            text-overflow: ellipsis;
+                                        "
+                                    >
+                                        Memuat...
+                                    </h2>
+                                    <p
+                                        id="processing-username"
+                                        class="text-muted font-mono text-sm"
+                                    >
+                                        ---
+                                    </p>
+                                    <div class="flex items-center gap-2 mt-2">
+                                        <div
+                                            style="
+                                                display: inline-flex;
+                                                align-items: center;
+                                                gap: 0.5rem;
+                                                background: #f8fafc;
+                                                padding: 0.25rem 0.6rem;
+                                                border-radius: 4px;
+                                            "
+                                        >
+                                            <i
+                                                class="fas fa-list-ol"
+                                                style="
+                                                    font-size: 0.7rem;
+                                                    color: #64748b;
+                                                "
+                                            ></i>
+                                            <span
+                                                style="
+                                                    font-size: 0.75rem;
+                                                    color: #475569;
+                                                    font-weight: 600;
+                                                "
+                                            >
+                                                <span id="processing-current"
+                                                    >0</span
+                                                >/<span id="processing-total"
+                                                    >0</span
+                                                >
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Action Button -->
+                                <div>
+                                    <button
+                                        id="pause-btn-processing"
+                                        class="btn btn-secondary btn-sm"
+                                        onclick="pauseAutomation()"
+                                        style="
+                                            white-space: nowrap;
+                                            min-width: 90px;
+                                        "
+                                    >
+                                        <i class="fas fa-pause"></i> Jeda
+                                    </button>
+                                </div>
                             </div>
-                            <button id="pause-btn-processing" class="btn btn-secondary btn-sm"
-                                onclick="pauseAutomation()" style="white-space: nowrap;">
-                                <i class="fas fa-pause"></i> Pause
-                            </button>
-                        </div>
-                    </div>
-                </div>
 
-                <div id="account-info" class="flex justify-between items-center mb-4 hidden">
-                    <div class="text-sm text-muted">
-                        Total: <strong id="account-count">0</strong> akun
-                    </div>
-                    <button class="btn btn-secondary text-sm" onclick="toggleSelectAll()">
-                        <i class="fas fa-check-double"></i> Pilih Semua
-                    </button>
-                </div>
-
-                <!-- Account List Container -->
-                <div class="card account-list-card">
-                    <div class="card-header flex justify-between items-center mb-4">
-                        <h3 class="form-label" style="margin:0">Daftar Akun</h3>
-                        <span class="text-xs text-muted" id="account-count-badge">0 Akun</span>
-                    </div>
-
-                    <div id="accounts-list-view" class="account-scroll-container">
-                        <div id="accounts-container" class="account-grid">
-                            <!-- Accounts will be injected here -->
-                            <div class="empty-state text-center py-8 text-muted">
-                                <i class="fas fa-inbox text-4xl mb-2"></i>
-                                <p>Belum ada akun dimuat</p>
+                            <!-- Bottom: Linear Progress Bar (subtle) -->
+                            <div style="margin-top: 1rem">
+                                <div
+                                    style="
+                                        height: 4px;
+                                        background: #f1f5f9;
+                                        border-radius: 2px;
+                                        overflow: hidden;
+                                    "
+                                >
+                                    <div
+                                        id="processing-progress-fill"
+                                        style="
+                                            width: 0%;
+                                            height: 100%;
+                                            background: linear-gradient(
+                                                90deg,
+                                                var(--primary) 0%,
+                                                #6366f1 100%
+                                            );
+                                            transition: width 0.3s ease;
+                                        "
+                                    ></div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </section>
 
-            <!-- RESULTS PAGE -->
-            <section id="results-page" class="page-section">
-                <div class="card mb-4">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="form-label" style="margin:0">Log Aktivitas</h3>
-                        <div class="flex gap-2">
-                            <button class="btn btn-primary text-sm" onclick="saveResultsAs()">
-                                <i class="fas fa-save"></i> Simpan
+                    <!-- Account List Container -->
+                    <div class="card account-list-card">
+                        <div
+                            class="card-header flex justify-between items-center mb-4"
+                        >
+                            <div style="flex: 1"></div>
+                            <button
+                                id="select-all-btn"
+                                class="btn btn-primary text-sm"
+                                onclick="toggleSelectAll()"
+                                style="
+                                    transition: all 0.2s ease;
+                                    box-shadow: 0 2px 4px
+                                        rgba(74, 112, 169, 0.3);
+                                "
+                                onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 8px rgba(74, 112, 169, 0.5)';"
+                                onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 4px rgba(74, 112, 169, 0.3)';"
+                                onmousedown="this.style.transform='scale(0.95)';"
+                                onmouseup="this.style.transform='scale(1.05)';"
+                            >
+                                <i class="fas fa-check-double"></i> Pilih Semua
                             </button>
-                            <button class="btn btn-secondary text-sm" onclick="clearLog()">
-                                <i class="fas fa-trash"></i> Bersihkan
+                        </div>
+
+                        <div
+                            id="accounts-list-view"
+                            class="account-scroll-container"
+                        >
+                            <div id="accounts-container" class="account-grid">
+                                <!-- Accounts will be injected here -->
+                                <div
+                                    class="empty-state text-center py-8 text-muted"
+                                >
+                                    <i class="fas fa-inbox text-4xl mb-2"></i>
+                                    <p>Belum ada akun dimuat</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- RESULTS PAGE -->
+                <section id="results-page" class="page-section">
+                    <div class="card mb-4">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="form-label" style="margin: 0">
+                                Log Aktivitas
+                            </h3>
+                            <div class="flex gap-2">
+                                <button
+                                    class="btn btn-primary text-sm"
+                                    onclick="saveResultsAs()"
+                                >
+                                    <i class="fas fa-save"></i> Simpan
+                                </button>
+                                <button
+                                    class="btn btn-secondary text-sm"
+                                    onclick="clearLog()"
+                                >
+                                    <i class="fas fa-trash"></i> Bersihkan
+                                </button>
+                            </div>
+                        </div>
+                        <div id="log-container" class="log-container">
+                            <!-- Logs will appear here -->
+                        </div>
+                    </div>
+
+                    <!-- Export Card (Hidden by default) -->
+                    <div id="export-card" class="card hidden text-center py-8">
+                        <div class="mb-4">
+                            <i
+                                class="fas fa-check-circle text-5xl text-green-500"
+                            ></i>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-2">
+                            Automation Selesai!
+                        </h3>
+                        <p class="text-muted mb-6">
+                            Berhasil memproses
+                            <strong id="export-count">0</strong> akun.
+                        </p>
+                        <div class="flex justify-center gap-4">
+                            <button
+                                class="btn btn-primary"
+                                onclick="downloadExcel()"
+                            >
+                                <i class="fas fa-file-excel"></i> Unduh Excel
+                            </button>
+                            <button
+                                class="btn btn-secondary"
+                                onclick="openResultsFolder()"
+                            >
+                                <i class="fas fa-folder-open"></i> Buka Folder
                             </button>
                         </div>
                     </div>
-                    <div id="log-container" class="log-container">
-                        <!-- Logs will appear here -->
-                        <div class="log-entry">
-                            <span class="log-time">[System]</span>
-                            <span class="log-msg">Ready to start...</span>
+                </section>
+
+                <!-- SETTINGS PAGE -->
+                <section id="settings-page" class="page-section">
+                    <!-- Page Header -->
+                    <div style="margin-bottom: 2rem">
+                        <h2
+                            style="
+                                font-size: 1.5rem;
+                                font-weight: 700;
+                                color: var(--text-main);
+                                margin-bottom: 0.5rem;
+                            "
+                        >
+                            Pengaturan
+                        </h2>
+                        <p style="color: var(--text-muted); font-size: 0.95rem">
+                            Kelola preferensi dan konfigurasi aplikasi Anda
+                        </p>
+                    </div>
+
+                    <!-- Browser Settings -->
+                    <div class="card" style="margin-bottom: 1.5rem">
+                        <div
+                            style="
+                                border-bottom: 1px solid var(--border-color);
+                                padding-bottom: 1rem;
+                                margin-bottom: 1.5rem;
+                            "
+                        >
+                            <h3
+                                style="
+                                    font-size: 1.1rem;
+                                    font-weight: 600;
+                                    color: var(--text-main);
+                                    margin-bottom: 0.25rem;
+                                "
+                            >
+                                Pengaturan Browser
+                            </h3>
+                            <p
+                                style="
+                                    font-size: 0.875rem;
+                                    color: var(--text-muted);
+                                "
+                            >
+                                Konfigurasi cara browser berjalan saat otomasi
+                            </p>
+                        </div>
+
+                        <!-- Headless Mode Setting -->
+                        <div
+                            style="
+                                display: flex;
+                                align-items: center;
+                                justify-content: space-between;
+                                padding: 1.25rem;
+                                background: #f8fafc;
+                                border-radius: 8px;
+                                margin-bottom: 1rem;
+                            "
+                        >
+                            <div style="flex: 1">
+                                <label
+                                    style="
+                                        font-size: 1rem;
+                                        font-weight: 600;
+                                        color: var(--text-main);
+                                        display: block;
+                                        margin-bottom: 0.35rem;
+                                    "
+                                    >Headless Mode</label
+                                >
+                                <p
+                                    style="
+                                        font-size: 0.875rem;
+                                        color: var(--text-muted);
+                                        line-height: 1.5;
+                                        margin: 0;
+                                    "
+                                >
+                                    Jalankan browser di background tanpa
+                                    tampilan visual. Lebih cepat dan hemat
+                                    resource.
+                                </p>
+                            </div>
+                            <label
+                                class="toggle-wrapper"
+                                style="margin-left: 2rem"
+                            >
+                                <input
+                                    type="checkbox"
+                                    id="headless-toggle"
+                                    class="toggle-checkbox"
+                                    onchange="toggleHeadless()"
+                                    checked
+                                />
+                                <div class="toggle-switch"></div>
+                            </label>
                         </div>
                     </div>
-                </div>
 
-                <!-- Export Card (Hidden by default) -->
-                <div id="export-card" class="card hidden text-center py-8">
-                    <div class="mb-4">
-                        <i class="fas fa-check-circle text-5xl text-green-500"></i>
+                    <!-- Performance Settings -->
+                    <div class="card" style="margin-bottom: 1.5rem">
+                        <div
+                            style="
+                                border-bottom: 1px solid var(--border-color);
+                                padding-bottom: 1rem;
+                                margin-bottom: 1.5rem;
+                            "
+                        >
+                            <h3
+                                style="
+                                    font-size: 1.1rem;
+                                    font-weight: 600;
+                                    color: var(--text-main);
+                                    margin-bottom: 0.25rem;
+                                "
+                            >
+                                Pengaturan Performa
+                            </h3>
+                            <p
+                                style="
+                                    font-size: 0.875rem;
+                                    color: var(--text-muted);
+                                "
+                            >
+                                Atur timing dan delay untuk optimasi kecepatan
+                            </p>
+                        </div>
+
+                        <!-- Delay Setting -->
+                        <div
+                            style="
+                                padding: 1.25rem;
+                                background: #f8fafc;
+                                border-radius: 8px;
+                            "
+                        >
+                            <label
+                                style="
+                                    font-size: 1rem;
+                                    font-weight: 600;
+                                    color: var(--text-main);
+                                    display: block;
+                                    margin-bottom: 0.35rem;
+                                "
+                                >Delay Antar Aksi</label
+                            >
+                            <p
+                                style="
+                                    font-size: 0.875rem;
+                                    color: var(--text-muted);
+                                    line-height: 1.5;
+                                    margin-bottom: 1rem;
+                                "
+                            >
+                                Waktu jeda antar aksi untuk menghindari deteksi
+                                bot. Nilai lebih tinggi = lebih aman tapi lebih
+                                lambat.
+                            </p>
+                            <div
+                                style="
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 1rem;
+                                "
+                            >
+                                <input
+                                    type="number"
+                                    id="delay-input"
+                                    class="form-input"
+                                    value="2.0"
+                                    step="0.5"
+                                    min="0.5"
+                                    max="10"
+                                    style="
+                                        width: 120px;
+                                        font-size: 1rem;
+                                        font-weight: 600;
+                                    "
+                                />
+                                <span
+                                    style="
+                                        font-size: 0.95rem;
+                                        color: var(--text-muted);
+                                    "
+                                    >detik</span
+                                >
+                                <div
+                                    style="flex: 1; display: flex; gap: 0.5rem"
+                                >
+                                    <button
+                                        onclick="document.getElementById('delay-input').value = '0.5'"
+                                        class="btn btn-secondary btn-sm"
+                                        style="font-size: 0.8rem"
+                                    >
+                                        Cepat (0.5s)
+                                    </button>
+                                    <button
+                                        onclick="document.getElementById('delay-input').value = '2.0'"
+                                        class="btn btn-secondary btn-sm"
+                                        style="font-size: 0.8rem"
+                                    >
+                                        Normal (2.0s)
+                                    </button>
+                                    <button
+                                        onclick="document.getElementById('delay-input').value = '5.0'"
+                                        class="btn btn-secondary btn-sm"
+                                        style="font-size: 0.8rem"
+                                    >
+                                        Aman (5.0s)
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <h3 class="text-2xl font-bold mb-2">Automation Selesai!</h3>
-                    <p class="text-muted mb-6">Berhasil memproses <strong id="export-count">0</strong> akun.</p>
-                    <div class="flex justify-center gap-4">
-                        <button class="btn btn-primary" onclick="downloadExcel()">
-                            <i class="fas fa-file-excel"></i> Download Excel
-                        </button>
-                        <button class="btn btn-secondary" onclick="openResultsFolder()">
-                            <i class="fas fa-folder-open"></i> Buka Folder
-                        </button>
+
+                    <!-- Info Box -->
+                    <div
+                        style="
+                            background: linear-gradient(
+                                135deg,
+                                #eff6ff 0%,
+                                #dbeafe 100%
+                            );
+                            border-left: 4px solid var(--primary);
+                            padding: 1rem 1.25rem;
+                            border-radius: 8px;
+                        "
+                    >
+                        <p
+                            style="
+                                font-size: 0.875rem;
+                                color: var(--text-main);
+                                line-height: 1.6;
+                                margin: 0;
+                            "
+                        >
+                            <strong>Tips:</strong> Gunakan Headless Mode untuk
+                            performa maksimal. Jika mengalami error, coba
+                            nonaktifkan untuk melihat proses browser secara
+                            visual.
+                        </p>
                     </div>
-                </div>
-        </div>
-        </section>
-
-        <!-- SETTINGS PAGE -->
-        <section id="settings-page" class="page-section">
-            <div class="card max-w-2xl">
-                <h3 class="form-label mb-6 text-lg">Pengaturan Umum</h3>
-
-                <div class="form-group flex items-center justify-between">
-                    <div>
-                        <label class="form-label" style="margin:0">Headless Mode</label>
-                        <p class="text-sm text-muted">Jalankan browser di background (tidak terlihat)</p>
-                    </div>
-                    <label class="toggle-wrapper">
-                        <input type="checkbox" id="headless-toggle" class="toggle-checkbox" onchange="toggleHeadless()"
-                            checked>
-                        <div class="toggle-switch"></div>
-                    </label>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Delay Antar Aksi (detik)</label>
-                    <input type="number" id="delay-input" class="form-input" value="2.0" step="0.5" min="0.5">
-                    <p class="text-sm text-muted mt-2">Waktu jeda untuk menghindari deteksi bot.</p>
-                </div>
+                </section>
             </div>
-        </section>
 
-        </div>
-    </main>
+            <!-- Footer -->
+            <footer
+                style="
+                    background: #f8fafc;
+                    color: #64748b;
+                    padding: 2rem 3rem 1.5rem;
+                    margin-top: 3rem;
+                    border-top: 1px solid #e2e8f0;
+                "
+            >
+                <div
+                    style="
+                        max-width: 1200px;
+                        margin: 0 auto;
+                        display: grid;
+                        grid-template-columns: 1fr auto 1fr;
+                        gap: 2rem;
+                        align-items: center;
+                    "
+                >
+                    <!-- Left: About App -->
+                    <div>
+                        <h3
+                            style="
+                                font-size: 1.1rem;
+                                font-weight: 700;
+                                margin-bottom: 0.75rem;
+                                color: #334155;
+                            "
+                        >
+                            SnapFlux Automation
+                        </h3>
+                        <p
+                            style="
+                                font-size: 0.875rem;
+                                color: #64748b;
+                                line-height: 1.6;
+                                margin-bottom: 0.5rem;
+                            "
+                        >
+                            Sistem otomasi untuk merchant SnapFlux
+                        </p>
+                        <div
+                            style="
+                                font-size: 0.8rem;
+                                color: #94a3b8;
+                                display: flex;
+                                flex-direction: column;
+                                gap: 0.25rem;
+                            "
+                        >
+                            <span
+                                ><strong>Built with:</strong> Python,
+                                Playwright, Eel</span
+                            >
+                        </div>
+                    </div>
 
-    <script src="app.js"></script>
-</body>
+                    <!-- Center: Social Media -->
+                    <div style="text-align: center">
+                        <p
+                            style="
+                                font-size: 0.875rem;
+                                color: #64748b;
+                                margin-bottom: 1rem;
+                                font-weight: 500;
+                            "
+                        >
+                            Connect with Developer
+                        </p>
+                        <div
+                            style="
+                                display: flex;
+                                gap: 1rem;
+                                justify-content: center;
+                            "
+                        >
+                            <a
+                                href="https://github.com/ediiloupatty"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style="
+                                    color: #94a3b8;
+                                    font-size: 1.5rem;
+                                    transition: all 0.3s ease;
+                                    display: inline-block;
+                                "
+                                onmouseover="this.style.color='#4a70a9'; this.style.transform='translateY(-3px)'"
+                                onmouseout="this.style.color='#94a3b8'; this.style.transform='translateY(0)'"
+                                title="GitHub"
+                            >
+                                <i class="fab fa-github"></i>
+                            </a>
+                            <a
+                                href="https://www.instagram.com/ediloupatty/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style="
+                                    color: #94a3b8;
+                                    font-size: 1.5rem;
+                                    transition: all 0.3s ease;
+                                    display: inline-block;
+                                "
+                                onmouseover="this.style.color='#E1306C'; this.style.transform='translateY(-3px)'"
+                                onmouseout="this.style.color='#94a3b8'; this.style.transform='translateY(0)'"
+                                title="Instagram"
+                            >
+                                <i class="fab fa-instagram"></i>
+                            </a>
+                            <a
+                                href="https://www.kaggle.com/ediloupatty"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style="
+                                    color: #94a3b8;
+                                    font-size: 1.5rem;
+                                    transition: all 0.3s ease;
+                                    display: inline-block;
+                                "
+                                onmouseover="this.style.color='#20BEFF'; this.style.transform='translateY(-3px)'"
+                                onmouseout="this.style.color='#94a3b8'; this.style.transform='translateY(0)'"
+                                title="Kaggle"
+                            >
+                                <i class="fab fa-kaggle"></i>
+                            </a>
+                            <a
+                                href="https://x.com/ediiiloupatty"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style="
+                                    color: #94a3b8;
+                                    font-size: 1.5rem;
+                                    transition: all 0.3s ease;
+                                    display: inline-block;
+                                "
+                                onmouseover="this.style.color='#1DA1F2'; this.style.transform='translateY(-3px)'"
+                                onmouseout="this.style.color='#94a3b8'; this.style.transform='translateY(0)'"
+                                title="Twitter / X"
+                            >
+                                <i class="fab fa-x-twitter"></i>
+                            </a>
+                        </div>
+                    </div>
 
+                    <!-- Right: Copyright -->
+                    <div style="text-align: right">
+                        <p
+                            style="
+                                font-size: 0.875rem;
+                                color: #64748b;
+                                margin-bottom: 0.5rem;
+                            "
+                        >
+                            <i
+                                class="far fa-copyright"
+                                style="margin-right: 0.25rem"
+                            ></i>
+                            2024 Edi Loupatty
+                        </p>
+                        <p
+                            style="
+                                font-size: 0.8rem;
+                                color: #94a3b8;
+                                line-height: 1.5;
+                            "
+                        >
+                            All rights reserved.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Bottom Bar -->
+                <div
+                    style="
+                        margin-top: 1.5rem;
+                        padding-top: 1rem;
+                        border-top: 1px solid #e2e8f0;
+                        text-align: center;
+                    "
+                >
+                    <p style="font-size: 0.75rem; color: #94a3b8; margin: 0">
+                        Developed for educational and automation purposes | MIT
+                        License
+                    </p>
+                </div>
+            </footer>
+        </main>
+
+        <script src="app.js"></script>
+    </body>
 </html>

@@ -19,23 +19,23 @@ def print_header():
 
 def check_python_version():
     """Cek versi Python"""
-    print("🔍 Checking Python version...")
+    print("Checking Python version...")
     version = sys.version_info
     print(f"   Python {version.major}.{version.minor}.{version.micro}")
 
     if version.major < 3 or (version.major == 3 and version.minor < 8):
-        print("❌ Error: Python 3.8 atau lebih baru diperlukan!")
+        print("✗ Error: Python 3.8 atau lebih baru diperlukan!")
         print("   Silakan upgrade Python Anda.")
         return False
 
-    print("✅ Python version OK")
+    print("✓ Python version OK")
     print()
     return True
 
 
 def check_pip():
     """Cek apakah pip tersedia"""
-    print("🔍 Checking pip...")
+    print("Checking pip...")
     try:
         result = subprocess.run(
             [sys.executable, "-m", "pip", "--version"],
@@ -44,17 +44,17 @@ def check_pip():
             check=True,
         )
         print(f"   {result.stdout.strip()}")
-        print("✅ pip is available")
+        print("✓ pip is available")
         print()
         return True
     except subprocess.CalledProcessError:
-        print("❌ Error: pip tidak ditemukan!")
+        print("✗ Error: pip tidak ditemukan!")
         return False
 
 
 def install_playwright():
     """Install Playwright package"""
-    print("📦 Installing Playwright package...")
+    print("Installing Playwright package...")
     print("   This may take a few minutes...")
     print()
 
@@ -65,19 +65,19 @@ def install_playwright():
         )
 
         print()
-        print("✅ Playwright package installed successfully!")
+        print("✓ Playwright package installed successfully!")
         print()
         return True
 
     except subprocess.CalledProcessError as e:
         print()
-        print(f"❌ Error installing Playwright: {e}")
+        print(f"✗ Error installing Playwright: {e}")
         return False
 
 
 def install_browsers():
     """Install browser Chromium untuk Playwright"""
-    print("🌐 Installing Chromium browser...")
+    print("Installing Chromium browser...")
     print("   This will download Chromium (~170MB)...")
     print()
 
@@ -88,25 +88,25 @@ def install_browsers():
         )
 
         print()
-        print("✅ Chromium browser installed successfully!")
+        print("✓ Chromium browser installed successfully!")
         print()
         return True
 
     except subprocess.CalledProcessError as e:
         print()
-        print(f"❌ Error installing Chromium: {e}")
+        print(f"✗ Error installing Chromium: {e}")
         return False
 
 
 def verify_installation():
     """Verifikasi instalasi Playwright"""
-    print("🔍 Verifying Playwright installation...")
+    print("Verifying Playwright installation...")
 
     try:
         # Coba import playwright
         import playwright
 
-        print(f"✅ Playwright module can be imported")
+        print(f"✓ Playwright module can be imported")
         print(
             f"   Version: {playwright.__version__ if hasattr(playwright, '__version__') else 'Unknown'}"
         )
@@ -114,15 +114,15 @@ def verify_installation():
         # Coba import sync_api
         from playwright.sync_api import sync_playwright
 
-        print("✅ Playwright sync_api available")
+        print("✓ Playwright sync_api available")
 
         print()
-        print("🎉 Installation verified successfully!")
+        print("Installation verified successfully!")
         print()
         return True
 
     except ImportError as e:
-        print(f"❌ Error verifying installation: {e}")
+        print(f"✗ Error verifying installation: {e}")
         print()
         return False
 
@@ -133,7 +133,7 @@ def print_next_steps():
     print("  INSTALLATION COMPLETE!")
     print("=" * 60)
     print()
-    print("📋 Next Steps:")
+    print("Next Steps:")
     print()
     print("1. Run the Playwright version using:")
     print("   python PlayWRight\\main_playwright.py")
@@ -157,9 +157,9 @@ def print_failure():
     print("  INSTALLATION FAILED!")
     print("=" * 60)
     print()
-    print("❌ Playwright installation incomplete.")
+    print("Playwright installation incomplete.")
     print()
-    print("📋 Manual Installation:")
+    print("Manual Installation:")
     print()
     print("1. Install Playwright package:")
     print("   pip install playwright")
@@ -234,11 +234,11 @@ if __name__ == "__main__":
         main()
     except KeyboardInterrupt:
         print()
-        print("\n⚠️  Installation interrupted by user")
+        print("\n⚠ Installation interrupted by user")
         sys.exit(1)
     except Exception as e:
         print()
-        print(f"❌ Unexpected error: {e}")
+        print(f"✗ Unexpected error: {e}")
         import traceback
 
         traceback.print_exc()

@@ -50,18 +50,18 @@ def login_direct(page: Page, username: str, pin: str):
                Jika login gagal: (False, {'gagal_masuk_akun': False, 'count': 0})
                Jika ada gagal masuk akun: (True/False, {'gagal_masuk_akun': True, 'count': 1})
     """
-    print(f"\n🔐 === LOGIN LANGSUNG UNTUK {username} ===")
+    print(f"\n=== LOGIN LANGSUNG UNTUK {username} ===")
 
     try:
         # Navigasi ke halaman login
-        print(f"🌐 Navigasi ke {LOGIN_URL}...")
+        print(f"Navigasi ke {LOGIN_URL}...")
         page.goto(LOGIN_URL, wait_until="domcontentloaded")
 
         # Tunggu halaman loading - OPTIMIZED DELAY
         time.sleep(1.0)
 
         # Langsung cari dan isi email
-        print("📧 Mencari dan mengisi field email...")
+        print("Mencari dan mengisi field email...")
         email_filled = False
 
         # Coba berbagai selector untuk email field
@@ -82,7 +82,7 @@ def login_direct(page: Page, username: str, pin: str):
                         email_input.wait_for(state="visible", timeout=2000)
                         email_input.clear()
                         email_input.fill(username)
-                        print(f"✅ Email berhasil diisi: {username}")
+                        print(f"✓ Email berhasil diisi: {username}")
                         email_filled = True
                         break
                     except Exception:
@@ -91,7 +91,7 @@ def login_direct(page: Page, username: str, pin: str):
                 continue
 
         if not email_filled:
-            print("❌ Gagal mengisi email")
+            print("✗ Gagal mengisi email")
             return False, {"gagal_masuk_akun": False, "count": 0}
 
         # Langsung cari dan isi PIN
@@ -115,7 +115,7 @@ def login_direct(page: Page, username: str, pin: str):
                         pin_input.wait_for(state="visible", timeout=2000)
                         pin_input.clear()
                         pin_input.fill(pin)
-                        print(f"✅ PIN berhasil diisi: {pin}")
+                        print(f"✓ PIN berhasil diisi: {pin}")
                         pin_filled = True
                         break
                     except Exception:
@@ -123,13 +123,13 @@ def login_direct(page: Page, username: str, pin: str):
             except Exception:
                 continue
         if not pin_filled:
-            print("❌ Gagal mengisi PIN")
+            print("✗ Gagal mengisi PIN")
             return False, {"gagal_masuk_akun": False, "count": 0}
 
         # Langsung cari dan klik tombol login
-        print("⏳ Jeda 2.0 detik sebelum klik tombol login...")
+        print("Jeda 2.0 detik sebelum klik tombol login...")
         time.sleep(2.0)
-        print("🚀 Mencari dan mengklik tombol login...")
+        print("Mencari dan mengklik tombol login...")
         login_clicked = False
 
         # Coba berbagai selector untuk tombol login
@@ -150,7 +150,7 @@ def login_direct(page: Page, username: str, pin: str):
                         if login_button.is_enabled():
                             # Gunakan force=True untuk memastikan klik terjadi meskipun ada overlay
                             login_button.click(force=True)
-                            print("✅ Tombol login berhasil diklik")
+                            print("✓ Tombol login berhasil diklik")
                             time.sleep(1.0)  # Beri waktu untuk event click diproses
                             login_clicked = True
                             break
@@ -160,7 +160,7 @@ def login_direct(page: Page, username: str, pin: str):
                 continue
 
         if not login_clicked:
-            print("❌ Gagal mengklik tombol login")
+            print("✗ Gagal mengklik tombol login")
             return False, {"gagal_masuk_akun": False, "count": 0}
 
         # Tunggu proses login - beri waktu untuk modal muncul
@@ -170,7 +170,7 @@ def login_direct(page: Page, username: str, pin: str):
         # === DETEKSI PESAN "GAGAL MASUK AKUN" ===
         gagal_masuk_detected = False
 
-        print("🔍 Memeriksa apakah ada pesan 'Gagal Masuk Akun'...")
+        print("Memeriksa apakah ada pesan 'Gagal Masuk Akun'...")
         try:
             # Cek apakah ada pesan "Gagal Masuk Akun" dengan berbagai selector
             error_selectors = [
@@ -202,7 +202,7 @@ def login_direct(page: Page, username: str, pin: str):
                         try:
                             error_element.wait_for(state="visible", timeout=2000)
                             gagal_masuk_detected = True
-                            print("❌ PESAN 'GAGAL MASUK AKUN' TERDETEKSI!")
+                            print("✗ PESAN 'GAGAL MASUK AKUN' TERDETEKSI!")
                             print("   Akun tidak dapat login karena salah PIN 5 kali")
 
                             # Coba ambil text lengkap pesan
@@ -223,19 +223,19 @@ def login_direct(page: Page, username: str, pin: str):
             if not gagal_masuk_detected:
                 print("✓ Tidak ada pesan 'Gagal Masuk Akun'")
         except Exception as e:
-            print(f"⚠️ Error saat cek pesan error: {str(e)}")
+            print(f"⚠ Error saat cek pesan error: {str(e)}")
 
         # === HANDLE GAGAL MASUK AKUN ===
         if gagal_masuk_detected:
-            print("🔄 === PROSES RETRY LOGIN SETELAH GAGAL MASUK AKUN ===")
-            print("⏳ Menunggu 2 menit (120 detik)...")
+            print("=== PROSES RETRY LOGIN SETELAH GAGAL MASUK AKUN ===")
+            print("Menunggu 2 menit (120 detik)...")
 
             # Tunggu 120 detik
             time.sleep(120)
-            print("✅ Tunggu 2 menit selesai!")
+            print("✓ Tunggu 2 menit selesai!")
 
             # Langsung klik tombol MASUK lagi tanpa reload
-            print("🔄 Mengklik tombol MASUK lagi tanpa refresh halaman...")
+            print("Mengklik tombol MASUK lagi tanpa refresh halaman...")
 
             retry_clicked = False
             for selector in login_selectors:
@@ -246,7 +246,7 @@ def login_direct(page: Page, username: str, pin: str):
                             login_button.wait_for(state="visible", timeout=2000)
                             if login_button.is_enabled():
                                 login_button.click()
-                                print("✅ Tombol MASUK berhasil diklik lagi!")
+                                print("✓ Tombol MASUK berhasil diklik lagi!")
                                 retry_clicked = True
                                 break
                         except Exception:
@@ -255,7 +255,7 @@ def login_direct(page: Page, username: str, pin: str):
                     continue
 
             if not retry_clicked:
-                print("❌ Gagal mengklik tombol MASUK lagi")
+                print("✗ Gagal mengklik tombol MASUK lagi")
                 return False, {"gagal_masuk_akun": gagal_masuk_detected, "count": 1}
 
             # Tunggu proses login kedua
@@ -263,7 +263,7 @@ def login_direct(page: Page, username: str, pin: str):
             time.sleep(3.0)
 
         # Tunggu dan verifikasi dashboard muncul
-        print("🔍 Memverifikasi login berhasil...")
+        print("Memverifikasi login berhasil...")
         dashboard_loaded = wait_for_dashboard(page, timeout=15000)
 
         # Cek URL sebagai fallback
@@ -272,15 +272,15 @@ def login_direct(page: Page, username: str, pin: str):
 
         if dashboard_loaded or is_not_login_page:
             if dashboard_loaded:
-                print("✅ Login berhasil!")
+                print("✓ Login berhasil!")
             else:
-                print("✅ Login berhasil! (URL sudah berubah dari halaman login)")
+                print("✓ Login berhasil! (URL sudah berubah dari halaman login)")
             return True, {
                 "gagal_masuk_akun": gagal_masuk_detected,
                 "count": 1 if gagal_masuk_detected else 0,
             }
         else:
-            print("❌ Login gagal - masih di halaman login")
+            print("✗ Login gagal - masih di halaman login")
             print(f"   Current URL: {current_url}")
             return False, {
                 "gagal_masuk_akun": gagal_masuk_detected,
@@ -288,7 +288,7 @@ def login_direct(page: Page, username: str, pin: str):
             }
 
     except Exception as e:
-        print(f"❌ Error dalam login: {str(e)}")
+        print(f"✗ Error dalam login: {str(e)}")
         logger.error(f"Error dalam login: {str(e)}", exc_info=True)
         return False, {"gagal_masuk_akun": False, "count": 0}
 
@@ -325,7 +325,7 @@ def wait_for_dashboard(page: Page, timeout: int = 20000):
                 if element.count() > 0:
                     try:
                         element.wait_for(state="visible", timeout=2000)
-                        print("✅ Dashboard berhasil dimuat")
+                        print("✓ Dashboard berhasil dimuat")
                         return True
                     except Exception:
                         continue
@@ -334,24 +334,24 @@ def wait_for_dashboard(page: Page, timeout: int = 20000):
 
         # Jika tidak ada elemen dashboard yang ditemukan tapi URL sudah berubah
         if "merchant-login" not in page.url:
-            print("✅ Login berhasil (URL berubah dari halaman login)")
+            print("✓ Login berhasil (URL berubah dari halaman login)")
             return True
 
-        print("⚠️ Dashboard tidak terdeteksi tapi masih mencoba melanjutkan")
+        print("⚠ Dashboard tidak terdeteksi tapi masih mencoba melanjutkan")
         return False
 
     except PlaywrightTimeoutError:
         # Jika timeout tapi URL sudah berubah, anggap berhasil
         if "merchant-login" not in page.url:
-            print("✅ Login berhasil (URL sudah bukan halaman login)")
+            print("✓ Login berhasil (URL sudah bukan halaman login)")
             return True
-        print("⏱️ Timeout menunggu dashboard")
+        print("Timeout menunggu dashboard")
         # FORCE TRUE jika URL sudah berubah
         if "merchant-login" not in page.url:
-             return True
+            return True
         return False
     except Exception as e:
-        print(f"⚠️ Error menunggu dashboard: {str(e)}")
+        print(f"⚠ Error menunggu dashboard: {str(e)}")
         return False
 
 
@@ -398,7 +398,7 @@ def is_logged_in(page: Page):
         return False
 
     except Exception as e:
-        print(f"⚠️ Error cek login status: {str(e)}")
+        print(f"⚠ Error cek login status: {str(e)}")
         return False
 
 
@@ -431,12 +431,12 @@ def logout(page: Page):
                     try:
                         logout_button.wait_for(state="visible", timeout=2000)
                         logout_button.click()
-                        print("✅ Tombol logout berhasil diklik")
+                        print("✓ Tombol logout berhasil diklik")
                         time.sleep(1.0)
 
                         # Verifikasi logout berhasil
                         if "merchant-login" in page.url:
-                            print("✅ Logout berhasil")
+                            print("✓ Logout berhasil")
                             return True
                         break
                     except Exception:
@@ -447,5 +447,5 @@ def logout(page: Page):
         return False
 
     except Exception as e:
-        print(f"⚠️ Error saat logout: {str(e)}")
+        print(f"⚠ Error saat logout: {str(e)}")
         return False

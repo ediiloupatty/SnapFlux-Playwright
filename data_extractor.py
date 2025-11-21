@@ -38,7 +38,7 @@ def get_stock_value_direct(page: Page) -> Optional[str]:
         str: Nilai stok dalam format string (contoh: "89")
         None: Jika gagal mengambil data
     """
-    print("📊 Mengambil data stok dari dashboard utama...")
+    print("Mengambil data stok dari dashboard utama...")
 
     try:
         # Tunggu halaman dashboard stabil
@@ -64,7 +64,7 @@ def get_stock_value_direct(page: Page) -> Optional[str]:
                     if match:
                         stock_value = match.group(1)
                         print(
-                            f"✅ Stok berhasil diambil dari dashboard: {stock_value} tabung"
+                            f"✓ Stok berhasil diambil dari dashboard: {stock_value} tabung"
                         )
                         return stock_value
                 except Exception:
@@ -86,9 +86,7 @@ def get_stock_value_direct(page: Page) -> Optional[str]:
                 match = re.search(pattern, page_text, re.IGNORECASE)
                 if match:
                     stock_value = match.group(1)
-                    print(
-                        f"✅ Stok berhasil diambil dari pattern: {stock_value} tabung"
-                    )
+                    print(f"✓ Stok berhasil diambil dari pattern: {stock_value} tabung")
                     return stock_value
         except Exception as e:
             logger.debug(f"Strategi 2 gagal: {e}")
@@ -112,18 +110,18 @@ def get_stock_value_direct(page: Page) -> Optional[str]:
                         match = re.search(r"(\d+)", elem_text)
                         if match:
                             stock_value = match.group(1)
-                            print(f"✅ Stok berhasil diambil: {stock_value} tabung")
+                            print(f"✓ Stok berhasil diambil: {stock_value} tabung")
                             return stock_value
                 except Exception:
                     continue
         except Exception as e:
             logger.debug(f"Strategi 3 gagal: {e}")
 
-        print("❌ Gagal mengambil data stok dari dashboard")
+        print("✗ Gagal mengambil data stok dari dashboard")
         return None
 
     except Exception as e:
-        print(f"❌ Error mengambil stok: {str(e)}")
+        print(f"✗ Error mengambil stok: {str(e)}")
         logger.error(f"Error get_stock_value_direct: {str(e)}", exc_info=True)
         return None
 
@@ -144,14 +142,14 @@ def get_tabung_terjual_direct(page: Page) -> Optional[int]:
         int: Jumlah tabung terjual
         None: Jika gagal mengambil data
     """
-    print("📈 Mengambil data tabung terjual dari Laporan Penjualan...")
+    print("Mengambil data tabung terjual dari Laporan Penjualan...")
 
     # Retry mechanism
     max_retries = 5
     for attempt in range(max_retries):
         try:
-            print(f"   🔄 Percobaan ekstraksi ke-{attempt + 1}...")
-            
+            print(f"   Percobaan ekstraksi ke-{attempt + 1}...")
+
             # Tunggu halaman stabil
             time.sleep(2.0)
 
@@ -179,7 +177,7 @@ def get_tabung_terjual_direct(page: Page) -> Optional[int]:
                         if match:
                             tabung_terjual = int(match.group(1))
                             print(
-                                f"✅ Tabung terjual berhasil diambil: {tabung_terjual} tabung"
+                                f"✓ Tabung terjual berhasil diambil: {tabung_terjual} tabung"
                             )
                             return tabung_terjual
                     except Exception:
@@ -202,7 +200,7 @@ def get_tabung_terjual_direct(page: Page) -> Optional[int]:
                     if match:
                         tabung_terjual = int(match.group(1))
                         print(
-                            f"✅ Tabung terjual berhasil diambil: {tabung_terjual} tabung"
+                            f"✓ Tabung terjual berhasil diambil: {tabung_terjual} tabung"
                         )
                         return tabung_terjual
             except Exception as e:
@@ -221,13 +219,13 @@ def get_tabung_terjual_direct(page: Page) -> Optional[int]:
 
                         # Cari "Total Tabung" dalam section ini
                         match = re.search(
-                            r"Total Tabung[^\d]*(\d+)\s*Tabung", section_text, re.IGNORECASE
+                            r"Total Tabung[^\d]*(\d+)\s*Tabung",
+                            section_text,
+                            re.IGNORECASE,
                         )
                         if match:
                             tabung_terjual = int(match.group(1))
-                            print(
-                                f"✅ Tabung terjual berhasil diambil dari section: {tabung_terjual} tabung"
-                            )
+
                             return tabung_terjual
                     except Exception:
                         pass
@@ -251,23 +249,25 @@ def get_tabung_terjual_direct(page: Page) -> Optional[int]:
                             and "terjual" in parent_text.lower()
                         ):
                             elem_text = elem.text_content()
-                            match = re.search(r"(\d+)\s*Tabung", elem_text, re.IGNORECASE)
+                            match = re.search(
+                                r"(\d+)\s*Tabung", elem_text, re.IGNORECASE
+                            )
                             if match:
                                 tabung_terjual = int(match.group(1))
                                 print(
-                                    f"✅ Tabung terjual berhasil diambil dari elemen: {tabung_terjual} tabung"
+                                    f"✓ Tabung terjual berhasil diambil dari elemen: {tabung_terjual} tabung"
                                 )
                                 return tabung_terjual
                     except Exception:
                         continue
             except Exception as e:
                 logger.debug(f"Strategi 4 gagal: {e}")
-                
-            print("⚠️ Belum berhasil mengambil data, mencoba lagi...")
+
+            print("⚠ Belum berhasil mengambil data, mencoba lagi...")
         except Exception as e:
-            print(f"⚠️ Error dalam loop ekstraksi: {str(e)}")
-            
-    print("❌ Gagal mengambil data tabung terjual setelah semua percobaan")
+            print(f"⚠ Error dalam loop ekstraksi: {str(e)}")
+
+    print("✗ Gagal mengambil data tabung terjual setelah semua percobaan")
     return None
 
 
@@ -312,7 +312,7 @@ def get_customer_list_direct(page: Page, min_tabung: int = 2) -> List[Dict]:
                 if len(rows) == 0:
                     continue
 
-                print(f"📋 Ditemukan {len(rows)} baris data")
+                print(f"Ditemukan {len(rows)} baris data")
 
                 for row in rows:
                     try:
@@ -376,15 +376,15 @@ def get_customer_list_direct(page: Page, min_tabung: int = 2) -> List[Dict]:
 
         if customers:
             print(
-                f"✅ Berhasil mengambil {len(customers)} customer dengan >= {min_tabung} tabung"
+                f"✓ Berhasil mengambil {len(customers)} customer dengan >= {min_tabung} tabung"
             )
         else:
-            print("⚠️ Tidak ada customer yang memenuhi kriteria")
+            print("⚠ Tidak ada customer yang memenuhi kriteria")
 
         return customers
 
     except Exception as e:
-        print(f"❌ Error mengambil customer list: {str(e)}")
+        print(f"✗ Error mengambil customer list: {str(e)}")
         logger.error(f"Error get_customer_list_direct: {str(e)}", exc_info=True)
         return []
 
@@ -399,7 +399,7 @@ def extract_transaction_data(page: Page) -> Dict:
     Returns:
         Dict: Data transaksi dengan keys: tanggal, nama, nik, jumlah_tabung, total_harga
     """
-    print("📝 Mengekstrak data transaksi...")
+    print("Mengekstrak data transaksi...")
 
     try:
         transaction_data = {
@@ -450,11 +450,11 @@ def extract_transaction_data(page: Page) -> Dict:
                 transaction_data["total_harga"] = match.group(1)
                 break
 
-        print(f"✅ Data transaksi berhasil diekstrak")
+        print(f"✓ Data transaksi berhasil diekstrak")
         return transaction_data
 
     except Exception as e:
-        print(f"⚠️ Error ekstrak data transaksi: {str(e)}")
+        print(f"⚠ Error ekstrak data transaksi: {str(e)}")
         logger.error(f"Error extract_transaction_data: {str(e)}", exc_info=True)
         return {}
 
@@ -484,7 +484,7 @@ def wait_for_data_load(page: Page, timeout: int = 10000) -> bool:
                 loading = page.locator(selector).first
                 if loading.is_visible(timeout=1000):
                     loading.wait_for(state="hidden", timeout=timeout)
-                    print("✅ Loading selesai")
+                    print("✓ Loading selesai")
                     return True
             except Exception:
                 continue
@@ -494,8 +494,8 @@ def wait_for_data_load(page: Page, timeout: int = 10000) -> bool:
         return True
 
     except PlaywrightTimeoutError:
-        print("⏱️ Timeout menunggu data load")
+        print("Timeout menunggu data load")
         return False
     except Exception as e:
-        print(f"⚠️ Error menunggu data load: {str(e)}")
+        print(f"⚠ Error menunggu data load: {str(e)}")
         return False

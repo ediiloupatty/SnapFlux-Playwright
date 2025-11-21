@@ -203,38 +203,38 @@ def get_date_input():
             date_input = input_with_timeout("Tanggal: ", 15).strip()
 
             if not date_input:
-                print("⏭️ User tidak input tanggal - akan lewati fungsi klik tanggal")
-                print("📅 Data akan diambil tanpa filter tanggal spesifik")
+                print("User tidak input tanggal - akan lewati fungsi klik tanggal")
+                print("Data akan diambil tanpa filter tanggal spesifik")
                 return None
 
             if not re.match(r"^\d{2}/\d{2}/\d{4}$", date_input):
-                print("❌ Format tanggal salah! Gunakan format DD/MM/YYYY")
+                print("✗ Format tanggal salah! Gunakan format DD/MM/YYYY")
                 continue
 
             day, month, year = map(int, date_input.split("/"))
 
             if year < 2020 or year > 2030:
-                print("❌ Tahun tidak valid! Gunakan tahun antara 2020-2030")
+                print("✗ Tahun tidak valid! Gunakan tahun antara 2020-2030")
                 continue
             if month < 1 or month > 12:
-                print("❌ Bulan tidak valid!")
+                print("✗ Bulan tidak valid!")
                 continue
             if day < 1 or day > 31:
-                print("❌ Hari tidak valid!")
+                print("✗ Hari tidak valid!")
                 continue
 
             try:
                 selected_date = datetime(year, month, day)
                 print(
-                    f"✅ Tanggal berhasil di-parse: {selected_date.strftime('%d %B %Y')}"
+                    f"✓ Tanggal berhasil di-parse: {selected_date.strftime('%d %B %Y')}"
                 )
                 return selected_date
             except ValueError as ve:
-                print(f"❌ Tanggal tidak valid! {str(ve)}")
+                print(f"✗ Tanggal tidak valid! {str(ve)}")
                 continue
 
         except Exception as e:
-            print(f"❌ Error input tanggal: {str(e)}")
+            print(f"✗ Error input tanggal: {str(e)}")
             return None
 
 
@@ -253,17 +253,17 @@ def print_final_summary(rekap, total_accounts, total_duration):
         total_duration (float): Total durasi proses
     """
     print(f"\n{'=' * 60}")
-    print("📊 RINGKASAN AKHIR")
+    print("RINGKASAN AKHIR")
     print(f"{'=' * 60}")
     print(f"Total Akun: {total_accounts}")
-    print(f"✅ Sukses: {len(rekap.get('sukses', []))} akun")
-    print(f"❌ Gagal Login: {len(rekap.get('gagal_login', []))} akun")
-    print(f"❌ Gagal Navigasi: {len(rekap.get('gagal_navigasi', []))} akun")
-    print(f"⏱️ Total Waktu: {total_duration:.2f} detik")
+    print(f"✓ Sukses: {len(rekap.get('sukses', []))} akun")
+    print(f"✗ Gagal Login: {len(rekap.get('gagal_login', []))} akun")
+    print(f"✗ Gagal Navigasi: {len(rekap.get('gagal_navigasi', []))} akun")
+    print(f"Total Waktu: {total_duration:.2f} detik")
 
     if total_accounts > 0:
         avg_time = total_duration / total_accounts
-        print(f"⏱️ Rata-rata per Akun: {avg_time:.2f} detik")
+        print(f"Rata-rata per Akun: {avg_time:.2f} detik")
 
     print(f"{'=' * 60}")
 

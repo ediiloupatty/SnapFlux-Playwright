@@ -4,21 +4,22 @@ File ini menjalankan web-based GUI dengan Python backend
 """
 
 import json
+
 # Import config
 try:
     from config import HEADLESS_MODE
 except ImportError:
     HEADLESS_MODE = False  # Default fallback
+import base64
+import io
 import logging
 import os
 import sys
 import time
-import io
+import tkinter as tk
 from datetime import datetime
 from threading import Event, Thread
-import tkinter as tk
 from tkinter import filedialog
-import base64
 
 import eel
 
@@ -32,6 +33,8 @@ from excel_handler import save_to_excel_pivot_format
 from export_handler import export_results_to_excel
 from login_handler import login_direct
 from navigation_handler import click_laporan_penjualan_direct
+from session_manager import get_session_manager
+from telemetry_manager import get_telemetry_manager
 from utils import load_accounts_from_excel, setup_logging
 from validators import (
     is_valid_email,
@@ -53,8 +56,21 @@ stop_event = Event()
 automation_results = []
 automation_export_date = None
 
+# Initialize session and telemetry managers
+session_manager = get_session_manager()
+telemetry_manager = get_telemetry_manager()
+
+# Get correct path for exe and script
+if getattr(sys, "frozen", False):
+    # Running as compiled exe
+    application_path = os.path.dirname(sys.executable)
+else:
+    # Running as script
+    application_path = os.path.dirname(os.path.abspath(__file__))
+
 # Initialize Eel dengan folder web
-eel.init("web")
+web_folder = os.path.join(application_path, "web")
+eel.init(web_folder)
 
 
 @eel.expose
@@ -66,10 +82,10 @@ def load_accounts_from_data(base64_data, filename):
         # Decode base64
         if "," in base64_data:
             base64_data = base64_data.split(",")[1]
-            
+
         decoded = base64.b64decode(base64_data)
         file_obj = io.BytesIO(decoded)
-        
+
         # Load accounts using existing utility
         accounts = load_accounts_from_excel(file_obj)
 
@@ -110,6 +126,7 @@ def load_accounts_from_data(base64_data, filename):
             "message": f"Error: {str(e)}",
             "count": 0,
         }
+
 
 # Deprecated: load_accounts_from_file (kept for reference if needed, but unused by frontend now)
 @eel.expose
@@ -277,7 +294,7 @@ def pause_automation():
     automation_paused = not automation_paused
 
     status = "paused" if automation_paused else "resumed"
-    eel.log_message(f"⏸️ Automation {status}", "warning")
+    eel.log_message(f"Automation {status}", "warning")
 
     return {
         "success": True,
@@ -294,7 +311,7 @@ def stop_automation():
     stop_event.set()
     automation_running = False
 
-    eel.log_message("⏹️ Automation dihentikan oleh user", "error")
+    eel.log_message("Automation dihentikan oleh user", "error")
 
     return {"success": True, "message": "Automation dihentikan"}
 
@@ -310,24 +327,28 @@ def run_automation_background(accounts, selected_date, settings):
         automation_export_date
 
     try:
-        eel.log_message("🚀 Memulai proses automation...", "info")
+        # Reset telemetry untuk session baru
+        telemetry_manager.reset()
+
+        eel.log_message("Memulai proses automation...", "info")
 
         headless_mode = settings.get("headless", HEADLESS_MODE)
         delay = settings.get("delay", 2.0)
+        use_session = settings.get("use_session", True)  # Default: use session
 
         results = []
         # Only reset global results if it's a fresh start (e.g. user cleared logs or explicitly requested reset)
         # For now, we'll append to keep history until cleared manually
         if not automation_results:
-             automation_results = []
-             
+            automation_results = []
+
         automation_export_date = selected_date if selected_date else datetime.now()
         total_accounts = len(accounts)
 
         for idx, account in enumerate(accounts):
             # Check if stopped
             if stop_event.is_set():
-                eel.log_message("⏹️ Automation dihentikan", "error")
+                eel.log_message("Automation dihentikan", "error")
                 break
 
             # Check if paused
@@ -340,23 +361,37 @@ def run_automation_background(accounts, selected_date, settings):
             username = account["username"]
             pin = account["pin"]
 
+            # Start telemetry tracking
+            telemetry_manager.record_account_start(username)
+
             # Update overall progress at the start of each account
             progress_percent = int((idx / total_accounts) * 100)
             eel.update_overall_progress(idx, total_accounts, progress_percent)
 
             # Update status
             eel.update_account_status(account["id"], "processing", 0)
-            eel.log_message(f"🔄 Memproses: {nama} ({username})", "info")
+            eel.log_message(f"Memproses: {nama} ({username})", "info")
 
             browser_manager = None
 
             try:
+                # Check if session exists
+                has_session = session_manager.has_valid_session(username)
+                if has_session and use_session:
+                    eel.log_message(f"Session ditemukan untuk {nama}", "info")
+
                 # Setup browser
                 eel.update_account_status(account["id"], "processing", 10)
-                eel.log_message(f"🚀 Setup browser untuk {nama}...", "info")
+                eel.log_message(f"Setup browser untuk {nama}...", "info")
 
+                telemetry_manager.start_operation("browser_setup", username)
                 browser_manager = PlaywrightBrowserManager()
-                page = browser_manager.setup_browser(headless=headless_mode)
+                page = browser_manager.setup_browser(
+                    headless=headless_mode,
+                    username=username if use_session else None,
+                    use_session=use_session,
+                )
+                telemetry_manager.end_operation("browser_setup", username)
 
                 # Tambahkan delay untuk stabilitas di mode GUI
                 if not headless_mode:
@@ -364,51 +399,74 @@ def run_automation_background(accounts, selected_date, settings):
 
                 if not page:
                     eel.update_account_status(account["id"], "error", 0)
-                    eel.log_message(f"❌ Gagal setup browser untuk {nama}", "error")
+                    eel.log_message(f"Gagal setup browser untuk {nama}", "error")
+                    telemetry_manager.record_account_failure(
+                        username, "browser_setup_failed"
+                    )
                     continue
 
-                # Login
-                eel.update_account_status(account["id"], "processing", 30)
-                eel.log_message(f"🔐 Login untuk {nama}...", "info")
+                # Login (skip jika sudah ada session yang valid)
+                if has_session and use_session:
+                    eel.log_message(
+                        f"Menggunakan session tersimpan untuk {nama}", "success"
+                    )
+                    success = True
+                else:
+                    eel.update_account_status(account["id"], "processing", 30)
+                    eel.log_message(f"Login untuk {nama}...", "info")
 
-                success, gagal_info = login_direct(page, username, pin)
+                    telemetry_manager.start_operation("login", username)
+                    success, gagal_info = login_direct(page, username, pin)
+                    telemetry_manager.end_operation("login", username)
 
-                if not success:
-                    eel.update_account_status(account["id"], "error", 0)
-                    eel.log_message(f"❌ Login gagal untuk {nama}", "error")
-                    browser_manager.close()
-                    continue
+                    if not success:
+                        eel.update_account_status(account["id"], "error", 0)
+                        eel.log_message(f"Login gagal untuk {nama}", "error")
+                        telemetry_manager.record_account_failure(
+                            username, "login_failed"
+                        )
+                        browser_manager.close()
+                        continue
 
-                eel.log_message(f"✅ Login berhasil untuk {nama}", "success")
+                    eel.log_message(f"Login berhasil untuk {nama}", "success")
+
+                    # Save session after successful login
+                    if use_session:
+                        browser_manager.save_session(username)
+                        eel.log_message(f"Session disimpan untuk {nama}", "info")
 
                 # Ambil stok
                 eel.update_account_status(account["id"], "processing", 50)
-                eel.log_message(f"📦 Mengambil stok untuk {nama}...", "info")
+                eel.log_message(f"Mengambil stok untuk {nama}...", "info")
 
+                telemetry_manager.start_operation("get_stock", username)
                 stok_value = get_stock_value_direct(page)
+                telemetry_manager.end_operation("get_stock", username)
                 if stok_value:
-                    eel.log_message(f"✅ Stok {nama}: {stok_value} tabung", "success")
+                    eel.log_message(f"Stok {nama}: {stok_value} tabung", "success")
                 else:
-                    eel.log_message(f"⚠️ Gagal ambil stok untuk {nama}", "warning")
+                    eel.log_message(f"Gagal ambil stok untuk {nama}", "warning")
 
                 # Navigasi ke Laporan Penjualan
                 eel.update_account_status(account["id"], "processing", 70)
-                eel.log_message(f"📊 Mengambil data penjualan untuk {nama}...", "info")
+                eel.log_message(f"Mengambil data penjualan untuk {nama}...", "info")
 
                 tabung_terjual = None
                 if click_laporan_penjualan_direct(page):
                     tabung_terjual = get_tabung_terjual_direct(page)
                     if tabung_terjual is not None:
                         eel.log_message(
-                            f"✅ Tabung terjual {nama}: {tabung_terjual}", "success"
+                            f"Tabung terjual {nama}: {tabung_terjual}", "success"
                         )
                     else:
                         eel.log_message(
-                            f"⚠️ Gagal ambil tabung terjual untuk {nama}", "warning"
+                            f"Gagal ambil tabung terjual untuk {nama}",
+                            "warning",
                         )
                 else:
                     eel.log_message(
-                        f"⚠️ Gagal navigasi ke Laporan Penjualan untuk {nama}", "warning"
+                        f"Gagal navigasi ke Laporan Penjualan untuk {nama}",
+                        "warning",
                     )
 
                 # Simpan hasil
@@ -454,7 +512,7 @@ def run_automation_background(accounts, selected_date, settings):
 
                 eel.update_account_status(account["id"], "done", 100)
                 eel.log_message(
-                    f"✅ Selesai: {nama} - Stok: {stok_formatted}, Terjual: {tabung_formatted}",
+                    f"Selesai: {nama} - Stok: {stok_formatted}, Terjual: {tabung_formatted}",
                     "success",
                 )
 
@@ -464,8 +522,9 @@ def run_automation_background(accounts, selected_date, settings):
 
             except Exception as e:
                 eel.update_account_status(account["id"], "error", 0)
-                eel.log_message(f"❌ Error untuk {nama}: {str(e)}", "error")
+                eel.log_message(f"Error untuk {nama}: {str(e)}", "error")
                 logger.error(f"Error processing {nama}: {str(e)}", exc_info=True)
+                telemetry_manager.record_account_failure(username, "exception", str(e))
 
             finally:
                 # Delay sejenak sebelum menutup browser agar user bisa melihat hasil akhir
@@ -477,18 +536,18 @@ def run_automation_background(accounts, selected_date, settings):
 
                 # Delay antar akun
                 if idx < total_accounts - 1 and not stop_event.is_set():
-                    eel.log_message(f"⏳ Delay {delay} detik...", "info")
+                    eel.log_message(f"Delay {delay} detik...", "info")
                     time.sleep(delay)
 
         # Selesai
         eel.log_message(
-            f"🎉 Automation selesai! Total: {len(results)} akun berhasil diproses",
+            f"Automation selesai! Total: {len(results)} akun berhasil diproses",
             "success",
         )
         eel.automation_completed(len(results), total_accounts)
 
     except Exception as e:
-        eel.log_message(f"❌ Error automation: {str(e)}", "error")
+        eel.log_message(f"Error automation: {str(e)}", "error")
         logger.error(f"Error in automation: {str(e)}", exc_info=True)
 
     finally:
@@ -545,15 +604,12 @@ def save_results_as():
 
     try:
         if not automation_results:
-            return {
-                "success": False,
-                "message": "Tidak ada data untuk disimpan"
-            }
+            return {"success": False, "message": "Tidak ada data untuk disimpan"}
 
         # Generate default filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"SnapFlux_Export_{timestamp}.xlsx"
-        
+
         # Use a temp directory
         temp_dir = os.path.join(os.path.dirname(__file__), "temp_export")
         os.makedirs(temp_dir, exist_ok=True)
@@ -563,15 +619,17 @@ def save_results_as():
         export_date = (
             automation_export_date if automation_export_date else datetime.now()
         )
-        
-        saved_path = export_results_to_excel(automation_results, export_date, custom_filepath=temp_filepath)
+
+        saved_path = export_results_to_excel(
+            automation_results, export_date, custom_filepath=temp_filepath
+        )
 
         # Read file and convert to base64
         with open(saved_path, "rb") as f:
             file_content = f.read()
-            
-        base64_content = base64.b64encode(file_content).decode('utf-8')
-        
+
+        base64_content = base64.b64encode(file_content).decode("utf-8")
+
         # Clean up temp file
         try:
             os.remove(saved_path)
@@ -580,9 +638,9 @@ def save_results_as():
 
         return {
             "success": True,
-            "base64": base64_content,
+            "data": base64_content,
             "filename": filename,
-            "message": "File siap disimpan"
+            "message": "File siap disimpan",
         }
 
     except Exception as e:
@@ -643,6 +701,131 @@ def get_automation_status():
 
 
 @eel.expose
+def get_telemetry_metrics():
+    """
+    Get real-time telemetry metrics untuk dashboard
+
+    Returns:
+        dict: Real-time metrics
+    """
+    try:
+        return telemetry_manager.get_real_time_metrics()
+    except Exception as e:
+        logger.error(f"Error getting telemetry metrics: {str(e)}")
+        return {
+            "session_id": "",
+            "session_duration": 0,
+            "total_accounts": 0,
+            "successful": 0,
+            "failed": 0,
+            "skipped": 0,
+            "success_rate": 0,
+            "failure_rate": 0,
+            "avg_processing_time": 0,
+            "errors": {},
+            "timestamp": datetime.now().isoformat(),
+        }
+
+
+@eel.expose
+def get_dashboard_data():
+    """
+    Get comprehensive dashboard data
+
+    Returns:
+        dict: Dashboard data dengan overview, counters, rates, performance
+    """
+    try:
+        return telemetry_manager.get_dashboard_data()
+    except Exception as e:
+        logger.error(f"Error getting dashboard data: {str(e)}")
+        return {
+            "overview": {},
+            "counters": {},
+            "rates": {},
+            "performance": {},
+            "errors": {},
+        }
+
+
+@eel.expose
+def get_session_stats():
+    """
+    Get session statistics
+
+    Returns:
+        dict: Session stats
+    """
+    try:
+        stats = session_manager.get_stats()
+        sessions = session_manager.list_all_sessions()
+        return {"stats": stats, "sessions": sessions}
+    except Exception as e:
+        logger.error(f"Error getting session stats: {str(e)}")
+        return {"stats": {"total": 0, "valid": 0, "expired": 0}, "sessions": []}
+
+
+@eel.expose
+def clear_all_sessions():
+    """
+    Clear all saved sessions
+
+    Returns:
+        dict: {"success": bool, "count": int, "message": str}
+    """
+    try:
+        count = session_manager.clear_all_sessions()
+        return {
+            "success": True,
+            "count": count,
+            "message": f"Berhasil menghapus {count} session",
+        }
+    except Exception as e:
+        logger.error(f"Error clearing sessions: {str(e)}")
+        return {"success": False, "count": 0, "message": f"Error: {str(e)}"}
+
+
+@eel.expose
+def clear_expired_sessions():
+    """
+    Clear hanya expired sessions
+
+    Returns:
+        dict: {"success": bool, "count": int, "message": str}
+    """
+    try:
+        count = session_manager.clear_expired_sessions()
+        return {
+            "success": True,
+            "count": count,
+            "message": f"Berhasil menghapus {count} session yang expired",
+        }
+    except Exception as e:
+        logger.error(f"Error clearing expired sessions: {str(e)}")
+        return {"success": False, "count": 0, "message": f"Error: {str(e)}"}
+
+
+@eel.expose
+def save_telemetry_report():
+    """
+    Save session telemetry report
+
+    Returns:
+        dict: {"success": bool, "filepath": str, "message": str}
+    """
+    try:
+        filepath = telemetry_manager.save_session_report()
+        return {
+            "success": True,
+            "filepath": filepath,
+            "message": "Report berhasil disimpan",
+        }
+    except Exception as e:
+        logger.error(f"Error saving telemetry report: {str(e)}")
+        return {"success": False, "filepath": "", "message": f"Error: {str(e)}"}
+
+
+@eel.expose
 def clear_results():
     """Clear stored automation results"""
     global automation_results
@@ -659,42 +842,75 @@ def main():
         # Check folder struktur
         web_dir = os.path.join(os.path.dirname(__file__), "web")
         if not os.path.exists(web_dir):
-            print("❌ Folder 'web' tidak ditemukan!")
+            print("✗ Folder 'web' tidak ditemukan!")
             print(
                 "   Pastikan folder web/ dengan file HTML/CSS/JS ada di direktori yang sama"
             )
             return
 
         print("=" * 60)
-        print("🚀 SNAPFLUX AUTOMATION - GUI VERSION")
+        print("SNAPFLUX AUTOMATION - GUI VERSION")
         print("=" * 60)
-        print("🌐 Starting web server...")
-        print("📂 Web directory:", web_dir)
+        print("Starting web server...")
+        print("Web directory:", web_dir)
         print("=" * 60)
 
-        # Start Eel dengan Chrome App mode
-        eel.start(
-            "index.html",
-            size=(1400, 900),
-            port=8080,
-            mode="chrome-app",  # Buka sebagai Chrome app (standalone window)
-            host="localhost",
-            block=True,
-        )
+        # Try different ports if one is already in use
+        ports_to_try = [8080, 8081, 8082, 8083, 8084]
+        started = False
 
-    except EnvironmentError:
-        # Jika Chrome tidak tersedia, coba browser default
-        print("⚠️ Chrome tidak ditemukan, menggunakan browser default...")
-        eel.start(
-            "index.html",
-            size=(1400, 900),
-            port=8080,
-            mode=None,  # Browser default
-            host="localhost",
-            block=True,
-        )
+        for port in ports_to_try:
+            try:
+                print(f"Trying port {port}...")
+                # Start Eel dengan Chrome App mode
+                eel.start(
+                    "index.html",
+                    size=(1400, 900),
+                    port=port,
+                    mode="chrome-app",  # Buka sebagai Chrome app (standalone window)
+                    host="localhost",
+                    block=True,
+                )
+                started = True
+                break
+            except OSError as ose:
+                if "10048" in str(ose) or "address already in use" in str(ose).lower():
+                    print(f"⚠ Port {port} sudah digunakan, mencoba port lain...")
+                    continue
+                else:
+                    raise
+            except EnvironmentError:
+                # Jika Chrome tidak tersedia, coba browser default
+                print("⚠ Chrome tidak ditemukan, menggunakan browser default...")
+                try:
+                    eel.start(
+                        "index.html",
+                        size=(1400, 900),
+                        port=port,
+                        mode=None,  # Browser default
+                        host="localhost",
+                        block=True,
+                    )
+                    started = True
+                    break
+                except OSError as ose:
+                    if (
+                        "10048" in str(ose)
+                        or "address already in use" in str(ose).lower()
+                    ):
+                        print(f"⚠ Port {port} sudah digunakan, mencoba port lain...")
+                        continue
+                    else:
+                        raise
+
+        if not started:
+            print(
+                "✗ Tidak dapat menemukan port yang tersedia. Semua port sudah digunakan."
+            )
+            print("       Silakan tutup aplikasi lain yang menggunakan port 8080-8084.")
+
     except Exception as e:
-        print(f"❌ Error starting GUI: {str(e)}")
+        print(f"✗ Error starting GUI: {str(e)}")
         logger.error(f"Error starting GUI: {str(e)}", exc_info=True)
 
 

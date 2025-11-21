@@ -66,6 +66,12 @@ logs/
 *.sqlite
 *.db
 
+# Sessions & Metrics
+sessions/
+sessions/*.json
+metrics/
+metrics/*.json
+
 # Environment Variables
 .env
 .env.local

@@ -36,7 +36,7 @@ def click_laporan_penjualan_direct(page: Page) -> bool:
     Returns:
         bool: True jika berhasil, False jika gagal
     """
-    print("📊 Mencari dan mengklik menu Laporan Penjualan...")
+    print("Mencari dan mengklik menu Laporan Penjualan...")
 
     try:
         # Tunggu halaman stabil
@@ -79,18 +79,18 @@ def click_laporan_penjualan_direct(page: Page) -> bool:
 
                 print(f"   ✓ Elemen ditemukan, mengklik...")
                 menu_item.click(force=True)
-                print("✅ Menu Laporan Penjualan berhasil diklik")
+                print("✓ Menu Laporan Penjualan berhasil diklik")
                 time.sleep(2.0)
                 return True
             except Exception as e:
                 print(f"   ✗ Selector gagal: {str(e)[:50]}")
                 continue
 
-        print("❌ Gagal menemukan menu Laporan Penjualan dengan semua selector")
+        print("✗ Gagal menemukan menu Laporan Penjualan dengan semua selector")
         return False
 
     except Exception as e:
-        print(f"❌ Error klik Laporan Penjualan: {str(e)}")
+        print(f"✗ Error klik Laporan Penjualan: {str(e)}")
         logger.error(f"Error click_laporan_penjualan_direct: {str(e)}", exc_info=True)
         return False
 
@@ -109,7 +109,7 @@ def navigate_to_atur_produk(page: Page) -> bool:
     Returns:
         bool: True jika berhasil, False jika gagal
     """
-    print("⚙️ Mencari dan mengklik menu Atur Produk...")
+    print("Mencari dan mengklik menu Atur Produk...")
 
     try:
         # Tunggu halaman stabil
@@ -133,7 +133,7 @@ def navigate_to_atur_produk(page: Page) -> bool:
                     try:
                         menu_item.wait_for(state="visible", timeout=2000)
                         menu_item.click()
-                        print("✅ Menu Atur Produk berhasil diklik")
+                        print("✓ Menu Atur Produk berhasil diklik")
                         time.sleep(1.5)
                         return True
                     except Exception:
@@ -141,11 +141,11 @@ def navigate_to_atur_produk(page: Page) -> bool:
             except Exception:
                 continue
 
-        print("❌ Gagal menemukan menu Atur Produk")
+        print("✗ Gagal menemukan menu Atur Produk")
         return False
 
     except Exception as e:
-        print(f"❌ Error navigasi ke Atur Produk: {str(e)}")
+        print(f"✗ Error navigasi ke Atur Produk: {str(e)}")
         logger.error(f"Error navigate_to_atur_produk: {str(e)}", exc_info=True)
         return False
 
@@ -164,7 +164,7 @@ def click_rekap_penjualan_direct(page: Page) -> bool:
     Returns:
         bool: True jika berhasil, False jika gagal
     """
-    print("📋 Mencari dan mengklik Rekap Penjualan...")
+    print("Mencari dan mengklik Rekap Penjualan...")
 
     try:
         # Tunggu halaman stabil
@@ -188,7 +188,7 @@ def click_rekap_penjualan_direct(page: Page) -> bool:
                     try:
                         rekap_item.wait_for(state="visible", timeout=2000)
                         rekap_item.click()
-                        print("✅ Rekap Penjualan berhasil diklik")
+                        print("✓ Rekap Penjualan berhasil diklik")
                         time.sleep(1.5)
                         return True
                     except Exception:
@@ -196,11 +196,11 @@ def click_rekap_penjualan_direct(page: Page) -> bool:
             except Exception:
                 continue
 
-        print("❌ Gagal menemukan Rekap Penjualan")
+        print("✗ Gagal menemukan Rekap Penjualan")
         return False
 
     except Exception as e:
-        print(f"❌ Error klik Rekap Penjualan: {str(e)}")
+        print(f"✗ Error klik Rekap Penjualan: {str(e)}")
         logger.error(f"Error click_rekap_penjualan_direct: {str(e)}", exc_info=True)
         return False
 
@@ -242,7 +242,7 @@ def click_catat_penjualan_direct(page: Page) -> bool:
                     try:
                         menu_item.wait_for(state="visible", timeout=2000)
                         menu_item.click()
-                        print("✅ Menu Catat Penjualan berhasil diklik")
+                        print("✓ Menu Catat Penjualan berhasil diklik")
                         time.sleep(1.5)
                         return True
                     except Exception:
@@ -250,11 +250,11 @@ def click_catat_penjualan_direct(page: Page) -> bool:
             except Exception:
                 continue
 
-        print("❌ Gagal menemukan menu Catat Penjualan")
+        print("✗ Gagal menemukan menu Catat Penjualan")
         return False
 
     except Exception as e:
-        print(f"❌ Error klik Catat Penjualan: {str(e)}")
+        print(f"✗ Error klik Catat Penjualan: {str(e)}")
         logger.error(f"Error click_catat_penjualan_direct: {str(e)}", exc_info=True)
         return False
 
@@ -304,7 +304,7 @@ def click_date_elements_direct(page: Page, target_date) -> bool:
                 continue
 
         if not date_input:
-            print("❌ Tidak menemukan date input")
+            print("✗ Tidak menemukan date input")
             return False
 
         # Format tanggal sesuai kebutuhan (biasanya YYYY-MM-DD atau DD/MM/YYYY)
@@ -314,7 +314,7 @@ def click_date_elements_direct(page: Page, target_date) -> bool:
         date_input.click()
         time.sleep(0.5)
         date_input.fill(date_string)
-        print(f"✅ Tanggal berhasil diisi: {date_string}")
+        print(f"✓ Tanggal berhasil diisi: {date_string}")
 
         # Tunggu dan klik tombol apply/submit jika ada
         time.sleep(0.5)
@@ -333,7 +333,7 @@ def click_date_elements_direct(page: Page, target_date) -> bool:
                     try:
                         apply_btn.wait_for(state="visible", timeout=1000)
                         apply_btn.click()
-                        print("✅ Tombol apply berhasil diklik")
+                        print("✓ Tombol apply berhasil diklik")
                         time.sleep(1.5)
                         break
                     except Exception:
@@ -344,7 +344,7 @@ def click_date_elements_direct(page: Page, target_date) -> bool:
         return True
 
     except Exception as e:
-        print(f"❌ Error set tanggal: {str(e)}")
+        print(f"✗ Error set tanggal: {str(e)}")
         logger.error(f"Error click_date_elements_direct: {str(e)}", exc_info=True)
         return False
 
@@ -403,7 +403,7 @@ def click_date_elements_rekap_penjualan(page: Page, target_date) -> bool:
             start_date_input.click()
             time.sleep(0.5)
             start_date_input.fill(date_string)
-            print(f"✅ Tanggal mulai berhasil diisi: {date_string}")
+            print(f"✓ Tanggal mulai berhasil diisi: {date_string}")
 
         # Cari end date jika ada
         end_date_selectors = [
@@ -434,7 +434,7 @@ def click_date_elements_rekap_penjualan(page: Page, target_date) -> bool:
             end_date_input.click()
             time.sleep(0.5)
             end_date_input.fill(date_string)
-            print(f"✅ Tanggal akhir berhasil diisi: {date_string}")
+            print(f"✓ Tanggal akhir berhasil diisi: {date_string}")
 
         # Klik tombol apply/filter
         time.sleep(0.5)
@@ -454,7 +454,7 @@ def click_date_elements_rekap_penjualan(page: Page, target_date) -> bool:
                     try:
                         apply_btn.wait_for(state="visible", timeout=1000)
                         apply_btn.click()
-                        print("✅ Tombol filter berhasil diklik")
+                        print("✓ Tombol filter berhasil diklik")
                         time.sleep(2.0)
                         break
                     except Exception:
@@ -465,7 +465,7 @@ def click_date_elements_rekap_penjualan(page: Page, target_date) -> bool:
         return True
 
     except Exception as e:
-        print(f"❌ Error set tanggal rekap: {str(e)}")
+        print(f"✗ Error set tanggal rekap: {str(e)}")
         logger.error(
             f"Error click_date_elements_rekap_penjualan: {str(e)}", exc_info=True
         )
@@ -500,7 +500,7 @@ def find_and_click_element_by_text(
                     try:
                         element.wait_for(state="visible", timeout=2000)
                         element.click()
-                        print(f"✅ Element '{text}' berhasil diklik")
+                        print(f"✓ Element '{text}' berhasil diklik")
                         time.sleep(1.0)
                         return True
                     except Exception:
@@ -511,7 +511,7 @@ def find_and_click_element_by_text(
         return False
 
     except Exception as e:
-        print(f"⚠️ Error find and click element: {str(e)}")
+        print(f"⚠ Error find and click element: {str(e)}")
         return False
 
 
@@ -529,14 +529,14 @@ def wait_for_page_load(page: Page, timeout: int = 10000) -> bool:
     try:
         # Tunggu network idle
         page.wait_for_load_state("networkidle", timeout=timeout)
-        print("✅ Halaman selesai loading")
+        print("✓ Halaman selesai loading")
         return True
 
     except PlaywrightTimeoutError:
-        print("⏱️ Timeout menunggu halaman load")
+        print("Timeout menunggu halaman load")
         return False
     except Exception as e:
-        print(f"⚠️ Error wait for page load: {str(e)}")
+        print(f"⚠ Error wait for page load: {str(e)}")
         return False
 
 
@@ -554,12 +554,12 @@ def scroll_to_element(page: Page, selector: str) -> bool:
     try:
         element = page.locator(selector).first
         element.scroll_into_view_if_needed()
-        print(f"✅ Scroll ke elemen berhasil")
+        print(f"✓ Scroll ke elemen berhasil")
         time.sleep(0.5)
         return True
 
     except Exception as e:
-        print(f"⚠️ Error scroll to element: {str(e)}")
+        print(f"⚠ Error scroll to element: {str(e)}")
         return False
 
 
@@ -596,7 +596,7 @@ def go_back_to_home(page: Page) -> bool:
                     try:
                         home_item.wait_for(state="visible", timeout=2000)
                         home_item.click()
-                        print("✅ Berhasil kembali ke halaman utama")
+                        print("✓ Berhasil kembali ke halaman utama")
                         time.sleep(1.5)
                         return True
                     except Exception:
@@ -605,12 +605,12 @@ def go_back_to_home(page: Page) -> bool:
                 continue
 
         # Alternatif: gunakan browser back
-        print("⚠️ Mencoba browser back...")
+        print("⚠ Mencoba browser back...")
         page.go_back()
         time.sleep(1.5)
         return True
 
     except Exception as e:
-        print(f"❌ Error kembali ke home: {str(e)}")
+        print(f"✗ Error kembali ke home: {str(e)}")
         logger.error(f"Error go_back_to_home: {str(e)}", exc_info=True)
         return False

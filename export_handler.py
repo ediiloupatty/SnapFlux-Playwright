@@ -12,7 +12,9 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
 
-def export_results_to_excel(results: List[Dict], export_date: datetime, custom_filepath: str = None) -> str:
+def export_results_to_excel(
+    results: List[Dict], export_date: datetime, custom_filepath: str = None
+) -> str:
     """
     Export hasil automation ke Excel dengan format multi-tanggal
 
@@ -165,7 +167,7 @@ def export_results_to_excel(results: List[Dict], export_date: datetime, custom_f
         return filepath
 
     except Exception as e:
-        print(f"❌ Error exporting to Excel: {str(e)}")
+        print(f"✗ Error exporting to Excel: {str(e)}")
         raise
 
 
@@ -370,5 +372,5 @@ def export_multi_date_results(
         return filepath
 
     except Exception as e:
-        print(f"❌ Error exporting multi-date to Excel: {str(e)}")
+        print(f"✗ Error exporting multi-date to Excel: {str(e)}")
         raise

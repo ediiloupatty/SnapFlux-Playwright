@@ -124,14 +124,14 @@ def save_to_excel_pivot_format(
         timestamp = datetime.now().strftime("%I:%M %p")
 
         print(
-            f"🔧 Parsing data: stok='{stok_awal}' -> {stok_int}, inputan='{total_inputan}' -> {inputan_int}"
+            f"Parsing data: stok='{stok_awal}' -> {stok_int}, inputan='{total_inputan}' -> {inputan_int}"
         )
 
         # Generate sheet name dinamis berdasarkan bulan
         sheet_name = get_sheet_name_dynamic(selected_date)
 
-        print(f"📁 Menggunakan file master: {filename}")
-        print(f"📋 Menggunakan sheet: {sheet_name}")
+        print(f"Menggunakan file master: {filename}")
+        print(f"Menggunakan sheet: {sheet_name}")
 
         # Load existing Excel atau buat baru
         wb, ws = _load_or_create_workbook(filepath, sheet_name)
@@ -177,13 +177,13 @@ def save_to_excel_pivot_format(
         # Save workbook
         wb.save(filepath)
 
-        print(f"✅ Data berhasil disimpan ke file master incremental: {filepath}")
-        print(f"📋 Format: PANGKALAN_ID={pangkalan_id}, NAMA={nama_pangkalan}")
-        print(f"📋 Data: STOK={stok_int}, INPUT={inputan_int}, TIME={timestamp}")
-        print(f"🎯 Sistem incremental aktif - data ditambahkan/updated tanpa overwrite")
+        print(f"✓ Data berhasil disimpan ke file master incremental: {filepath}")
+        print(f"Format: PANGKALAN_ID={pangkalan_id}, NAMA={nama_pangkalan}")
+        print(f"Data: STOK={stok_int}, INPUT={inputan_int}, TIME={timestamp}")
+        print(f"Sistem incremental aktif - data ditambahkan/updated tanpa overwrite")
 
     except Exception as e:
-        print(f"❌ Error saat menyimpan pivot format: {str(e)}")
+        print(f"✗ Error saat menyimpan pivot format: {str(e)}")
         import logging
 
         logger = logging.getLogger("automation")
@@ -202,7 +202,7 @@ def _load_or_create_workbook(filepath, sheet_name):
                 ws = wb[sheet_name]
 
         except Exception as e:
-            print(f"⚠️ Error membaca file, akan buat file baru: {e}")
+            print(f"⚠ Error membaca file, akan buat file baru: {e}")
             # Buat workbook baru
             wb = Workbook()
             if "Sheet" in wb.sheetnames:
@@ -231,7 +231,7 @@ def _find_or_create_date_column(ws, target_date):
     ):  # Mulai dari kolom 3 (setelah PANGKALAN_ID dan NAMA_PANGKALAN)
         header_cell = ws.cell(row=1, column=col).value
         if header_cell and str(header_cell) == display_date:
-            print(f"📅 Kolom tanggal {display_date} sudah ada di kolom {col}")
+            print(f"Kolom tanggal {display_date} sudah ada di kolom {col}")
             return col, False
 
     # Buat kolom baru jika belum ada
@@ -264,7 +264,7 @@ def _find_or_create_pangkalan_row(ws, pangkalan_id, nama_pangkalan):
     # Cari apakah pangkalan sudah ada
     for row in range(3, ws.max_row + 1):
         if ws.cell(row=row, column=1).value == pangkalan_id:
-            print(f"📝 Pangkalan {pangkalan_id} sudah ada di baris {row}")
+            print(f"Pangkalan {pangkalan_id} sudah ada di baris {row}")
             return row, False
 
     # Buat row baru jika belum ada
@@ -390,7 +390,7 @@ def _apply_conditional_formatting(
                         row=row, column=date_col_start + 1
                     ).fill = yellow_fill  # INPUT
                     print(
-                        f"🟡 Applied yellow highlight: STOK={stok_int} (>90) && INPUT={inputan_int} (=0)"
+                        f"Applied yellow highlight: STOK={stok_int} (>90) && INPUT={inputan_int} (=0)"
                     )
                     break
 
@@ -410,7 +410,7 @@ def _apply_conditional_formatting_new(
                 row=pangkalan_row, column=date_col_start + 1
             ).fill = yellow_fill  # INPUT
             print(
-                f"🟡 Applied yellow highlight: STOK={stok_int} (>90) && INPUT={inputan_int} (=0)"
+                f"Applied yellow highlight: STOK={stok_int} (>90) && INPUT={inputan_int} (=0)"
             )
 
 
@@ -494,11 +494,11 @@ def _merge_and_color_date_headers(ws, display_date, center_alignment):
                 merged_cell = ws.cell(row=1, column=start_col)
                 merged_cell.alignment = center_alignment
 
-                print(f"✅ Merged header untuk kolom {start_col}-{end_col}")
+                print(f"✓ Merged header untuk kolom {start_col}-{end_col}")
 
             except Exception as e:
                 print(
-                    f"⚠️ Warning: Failed to merge cells for date group {start_col}-{end_col}: {e}"
+                    f"⚠ Warning: Failed to merge cells for date group {start_col}-{end_col}: {e}"
                 )
 
 
@@ -543,7 +543,7 @@ def _apply_all_conditional_formatting(ws):
     )
     center_alignment = Alignment(horizontal="center", vertical="center")
 
-    print("🔍 Checking for conditional formatting conditions...")
+    print("Checking for conditional formatting conditions...")
 
     # Cari semua kolom yang berisi data stok dan input
     for col in range(1, max_col + 1):
@@ -615,7 +615,7 @@ def _apply_all_conditional_formatting(ws):
                                         row=row, column=input_col
                                     ).fill = yellow_fill  # INPUT
                                     print(
-                                        f"🟡 Applied yellow highlight at row {row}: STOK={stok_num} (>90) && INPUT={input_num} (=0)"
+                                        f"Applied yellow highlight at row {row}: STOK={stok_num} (>90) && INPUT={input_num} (=0)"
                                     )
                 except (ValueError, TypeError):
                     # Skip jika tidak bisa convert ke int
@@ -638,7 +638,7 @@ def save_to_excel_new_format(
     filepath = os.path.join(RESULTS_DIR, filename)
 
     try:
-        print(f"💾 Menyimpan data ke Excel ({filename})...")
+        print(f"Menyimpan data ke Excel ({filename})...")
 
         # Siapkan data dengan format baru
         data = {
@@ -660,16 +660,16 @@ def save_to_excel_new_format(
             df_existing = pd.concat([df_existing, df_new], ignore_index=True)
 
             df_existing.to_excel(filepath, index=False)
-            print(f"✅ Data berhasil disimpan ke: {filepath}")
-            print("\n📋 Hasil scraping:")
+            print(f"✓ Data berhasil disimpan ke: {filepath}")
+            print("\nHasil scraping:")
             print(df_new.to_string(index=False))
         else:
             df_new.to_excel(filepath, index=False)
-            print(f"✅ Data berhasil disimpan ke: {filepath}")
-            print("\n📋 Hasil scraping:")
+            print(f"✓ Data berhasil disimpan ke: {filepath}")
+            print("\nHasil scraping:")
             print(df_new.to_string(index=False))
     except Exception as e:
-        print(f"❌ Error saat menyimpan: {str(e)}")
+        print(f"✗ Error saat menyimpan: {str(e)}")
         import logging
 
         logger = logging.getLogger("automation")

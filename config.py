@@ -230,9 +230,9 @@ def apply_preset(preset_name):
     if preset:
         for key, value in preset.items():
             set_config(key, value)
-        print(f"✅ Applied {preset_name.upper()} preset")
+        print(f"✓ Applied {preset_name.upper()} preset")
     else:
-        print(f"❌ Unknown preset: {preset_name}")
+        print(f"✗ Unknown preset: {preset_name}")
 
 
 # ============================================

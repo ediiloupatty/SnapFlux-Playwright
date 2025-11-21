@@ -70,11 +70,11 @@ def run_cek_stok_playwright(accounts, selected_date, headless_mode=None):
     Returns:
         None: Menampilkan hasil dan menyimpan ke Excel
     """
-    print(f"\n🚀 Memulai proses Cek Stok dengan Playwright...")
+    print(f"\nMemulai proses Cek Stok dengan Playwright...")
     if selected_date:
-        print(f"📅 Tanggal: {selected_date.strftime('%d %B %Y')}")
+        print(f"Tanggal: {selected_date.strftime('%d %B %Y')}")
     else:
-        print(f"📅 Mode: TANPA filter tanggal spesifik")
+        print(f"Mode: TANPA filter tanggal spesifik")
 
     # Determine headless mode
     if headless_mode is None:
@@ -85,9 +85,9 @@ def run_cek_stok_playwright(accounts, selected_date, headless_mode=None):
             headless_mode = True  # Default fallback
 
     if headless_mode:
-        print("🌐 Browser akan berjalan dalam mode headless (tidak terlihat)")
+        print("Browser akan berjalan dalam mode headless (tidak terlihat)")
     else:
-        print("🖥️ Browser akan berjalan dengan GUI visible (terlihat)")
+        print("Browser akan berjalan dengan GUI visible (terlihat)")
 
     # Inisialisasi tracking
     total_start = time.time()
@@ -104,8 +104,8 @@ def run_cek_stok_playwright(accounts, selected_date, headless_mode=None):
     # Loop pemrosesan setiap akun
     for account_index, (nama, username, pin) in enumerate(accounts):
         print(f"\n{'=' * 60}")
-        print(f"🔄 Memproses akun: {username} ({nama})")
-        print(f"📊 Progress: {account_index + 1}/{len(accounts)}")
+        print(f"Memproses akun: {username} ({nama})")
+        print(f"Progress: {account_index + 1}/{len(accounts)}")
         print(f"{'=' * 60}")
 
         akun_start = time.time()
@@ -114,12 +114,12 @@ def run_cek_stok_playwright(accounts, selected_date, headless_mode=None):
 
         try:
             # Setup browser Playwright
-            print("🚀 Inisialisasi Playwright Browser...")
+            print("Inisialisasi Playwright Browser...")
             browser_manager = PlaywrightBrowserManager()
             page = browser_manager.setup_browser(headless=headless_mode)
 
             if not page:
-                print("❌ Gagal setup browser Playwright")
+                print("✗ Gagal setup browser Playwright")
                 rekap["gagal_navigasi"].append(username)
                 continue
 
@@ -132,43 +132,41 @@ def run_cek_stok_playwright(accounts, selected_date, headless_mode=None):
                 rekap["gagal_masuk_akun_count"] += gagal_info.get("count", 0)
 
             if not success:
-                print(f"❌ Login gagal untuk {username}")
+                print(f"✗ Login gagal untuk {username}")
                 rekap["gagal_login"].append(username)
                 browser_manager.close()
                 continue
 
-            print("✅ Login berhasil!")
+            print("✓ Login berhasil!")
 
             # === TAHAP 1: AMBIL STOK DARI DASHBOARD ===
-            print("\n📦 === TAHAP 1: AMBIL STOK DARI DASHBOARD ===")
+            print("\n=== TAHAP 1: AMBIL STOK DARI DASHBOARD ===")
             stok_value = None
 
             # Ambil stok langsung dari dashboard (tidak perlu navigasi ke Atur Produk)
             stok_value = get_stock_value_direct(page)
             if stok_value:
-                print(f"✅ Stok berhasil diambil dari dashboard: {stok_value} tabung")
+                print(f"✓ Stok berhasil diambil dari dashboard: {stok_value} tabung")
             else:
-                print("⚠️ Gagal mengambil stok dari dashboard")
+                print("⚠ Gagal mengambil stok dari dashboard")
 
             # === TAHAP 2: NAVIGASI KE LAPORAN PENJUALAN & AMBIL TABUNG TERJUAL ===
-            print("\n📊 === TAHAP 2: AMBIL DATA PENJUALAN ===")
+            print("\n=== TAHAP 2: AMBIL DATA PENJUALAN ===")
             tabung_terjual = None
 
             # Navigasi ke Laporan Penjualan
             if click_laporan_penjualan_direct(page):
-                print("✅ Berhasil masuk ke Laporan Penjualan")
+                print("✓ Berhasil masuk ke Laporan Penjualan")
 
                 # Ambil data tabung terjual langsung dari Data Penjualan
                 # (tidak perlu klik Rekap Penjualan)
                 tabung_terjual = get_tabung_terjual_direct(page)
                 if tabung_terjual is not None:
-                    print(
-                        f"✅ Tabung terjual berhasil diambil: {tabung_terjual} tabung"
-                    )
+                    print(f"✓ Tabung terjual berhasil diambil: {tabung_terjual} tabung")
                 else:
-                    print("⚠️ Gagal mengambil tabung terjual")
+                    print("⚠ Gagal mengambil tabung terjual")
             else:
-                print("❌ Gagal navigasi ke Laporan Penjualan")
+                print("✗ Gagal navigasi ke Laporan Penjualan")
 
             # === SELESAI - TIDAK ADA PROSES LAIN ===
 
@@ -198,14 +196,14 @@ def run_cek_stok_playwright(accounts, selected_date, headless_mode=None):
             results.append(result)
             rekap["sukses"].append(username)
 
-            print(f"\n✅ Selesai memproses {username}")
-            print(f"   📦 Stok: {stok_formatted}")
-            print(f"   📊 Terjual: {tabung_formatted}")
+            print(f"\n✓ Selesai memproses {username}")
+            print(f"   Stok: {stok_formatted}")
+            print(f"   Terjual: {tabung_formatted}")
             print(f"   ✓ Status: {status}")
-            print(f"⏱️ Waktu: {akun_waktu:.2f} detik")
+            print(f"Waktu: {akun_waktu:.2f} detik")
 
         except Exception as e:
-            print(f"❌ Error memproses {username}: {str(e)}")
+            print(f"✗ Error memproses {username}: {str(e)}")
             logger.error(f"Error memproses {username}: {str(e)}", exc_info=True)
             rekap["gagal_navigasi"].append(username)
 
@@ -217,12 +215,12 @@ def run_cek_stok_playwright(accounts, selected_date, headless_mode=None):
             # Delay antar akun untuk anti-rate limiting
             if account_index < len(accounts) - 1:
                 delay = 2.0
-                print(f"⏳ Delay {delay} detik sebelum akun berikutnya...")
+                print(f"Delay {delay} detik sebelum akun berikutnya...")
                 time.sleep(delay)
 
     # === SIMPAN HASIL KE EXCEL ===
     print(f"\n{'=' * 60}")
-    print("💾 Menyimpan hasil ke Excel...")
+    print("Menyimpan hasil ke Excel...")
     print(f"{'=' * 60}")
 
     if results:
@@ -251,26 +249,26 @@ def run_cek_stok_playwright(accounts, selected_date, headless_mode=None):
                 except Exception as e:
                     print(f"  ✗ Error saving {result['nama']}: {str(e)}")
 
-            print("\n✅ Semua data berhasil disimpan ke Excel!")
+            print("\n✓ Semua data berhasil disimpan ke Excel!")
         except Exception as e:
-            print(f"❌ Error menyimpan ke Excel: {str(e)}")
+            print(f"✗ Error menyimpan ke Excel: {str(e)}")
             logger.error(f"Error saving to Excel: {str(e)}", exc_info=True)
 
     # === TAMPILKAN REKAP ===
     total_waktu = time.time() - total_start
     print(f"\n{'=' * 60}")
-    print("📊 REKAP PROSES CEK STOK (PLAYWRIGHT)")
+    print("REKAP PROSES CEK STOK (PLAYWRIGHT)")
     print(f"{'=' * 60}")
-    print(f"✅ Sukses: {len(rekap['sukses'])} akun")
-    print(f"❌ Gagal Login: {len(rekap['gagal_login'])} akun")
-    print(f"❌ Gagal Navigasi: {len(rekap['gagal_navigasi'])} akun")
-    print(f"⚠️ Gagal Masuk Akun: {rekap['gagal_masuk_akun_count']} kali")
-    print(f"⏱️ Total Waktu: {total_waktu:.2f} detik")
+    print(f"✓ Sukses: {len(rekap['sukses'])} akun")
+    print(f"✗ Gagal Login: {len(rekap['gagal_login'])} akun")
+    print(f"✗ Gagal Navigasi: {len(rekap['gagal_navigasi'])} akun")
+    print(f"⚠ Gagal Masuk Akun: {rekap['gagal_masuk_akun_count']} kali")
+    print(f"Total Waktu: {total_waktu:.2f} detik")
     print(f"{'=' * 60}")
 
     # Tampilkan detail hasil
     if results:
-        print(f"\n📋 DETAIL HASIL:")
+        print(f"\nDETAIL HASIL:")
         for result in results:
             print(
                 f"  • {result['nama']} ({result['username']}): "
@@ -286,7 +284,7 @@ def main():
     Fungsi main untuk menjalankan automation Playwright
     """
     print("=" * 60)
-    print("🚀 SNAPFLUX AUTOMATION - PLAYWRIGHT VERSION")
+    print("SNAPFLUX AUTOMATION - PLAYWRIGHT VERSION")
     print("=" * 60)
 
     # Setup logging
@@ -305,9 +303,9 @@ def main():
 
         # Cek apakah folder akun ada
         if not os.path.exists(akun_dir):
-            print("❌ Folder 'akun' tidak ditemukan!")
+            print("✗ Folder 'akun' tidak ditemukan!")
             print(f"   Path: {os.path.abspath(akun_dir)}")
-            print("\n📋 Cara membuat folder dan file akun:")
+            print("\nCara membuat folder dan file akun:")
             print("   1. Buat folder 'akun' di root project")
             print("   2. Buat file Excel dengan kolom: Nama, Username, Password")
             print("   3. Isi data merchant Anda")
@@ -321,13 +319,13 @@ def main():
                 if f.endswith((".xlsx", ".xls")) and not f.startswith("~")
             ]
         except Exception as e:
-            print(f"❌ Error membaca folder akun: {e}")
+            print(f"✗ Error membaca folder akun: {e}")
             return
 
         if not excel_files:
-            print("❌ Tidak ada file Excel ditemukan di folder akun/")
+            print("✗ Tidak ada file Excel ditemukan di folder akun/")
             print(f"   Path: {os.path.abspath(akun_dir)}")
-            print("\n📋 Cara membuat file akun:")
+            print("\nCara membuat file akun:")
             print("   1. Buat file Excel di folder 'akun'")
             print("   2. Tambahkan kolom: Nama, Username, Password")
             print("   3. Isi data merchant Anda")
@@ -338,31 +336,31 @@ def main():
 
         # Gunakan file pertama yang ditemukan
         akun_file = os.path.join(akun_dir, excel_files[0])
-        print(f"📂 Membaca file: {excel_files[0]}")
+        print(f"Membaca file: {excel_files[0]}")
         print(f"   Path: {os.path.abspath(akun_file)}")
         print()
 
         accounts = load_accounts_from_excel(akun_file)
         if not accounts:
-            print("❌ Tidak ada akun valid ditemukan di file")
-            print("\n📋 Pastikan file Excel memiliki:")
+            print("✗ Tidak ada akun valid ditemukan di file")
+            print("\nPastikan file Excel memiliki:")
             print("   - Kolom: Nama, Username, Password")
             print("   - Data valid di setiap baris")
             print("   - Username berupa email atau nomor HP")
             print("   - Password berupa angka (PIN)")
             return
 
-        print(f"✅ Berhasil load {len(accounts)} akun")
+        print(f"✓ Berhasil load {len(accounts)} akun")
         try:
             print_account_stats(accounts)
         except Exception:
             print(f"   Total: {len(accounts)} akun")
     except FileNotFoundError as e:
-        print(f"❌ File tidak ditemukan: {e}")
+        print(f"✗ File tidak ditemukan: {e}")
         print(f"   Path: {os.path.abspath(akun_dir)}")
         return
     except Exception as e:
-        print(f"❌ Error loading accounts: {str(e)}")
+        print(f"✗ Error loading accounts: {str(e)}")
         print(f"   Pastikan file Excel memiliki kolom: Nama, Username, Password")
         logger.error(f"Error loading accounts: {str(e)}", exc_info=True)
         return
@@ -370,7 +368,7 @@ def main():
     # Menu pilihan
     print()
     print("=" * 60)
-    print("📋 MENU UTAMA - PLAYWRIGHT VERSION")
+    print("MENU UTAMA - PLAYWRIGHT VERSION")
     print("=" * 60)
     print("1. Cek Stok (Playwright)")
     print("2. Keluar")
@@ -384,7 +382,7 @@ def main():
             # Ask headless mode preference
             print()
             print("=" * 60)
-            print("🖥️ PILIH MODE BROWSER")
+            print("PILIH MODE BROWSER")
             print("=" * 60)
             print("1. Headless Mode (Browser tidak terlihat - Lebih Cepat)")
             print("2. GUI Mode (Browser terlihat - Untuk Debugging)")
@@ -395,30 +393,30 @@ def main():
 
             if headless_choice == "2":
                 headless_mode = False
-                print("✅ Mode: GUI Visible (Browser akan terlihat)")
+                print("✓ Mode: GUI Visible (Browser akan terlihat)")
             else:
                 headless_mode = True
-                print("✅ Mode: Headless (Browser tidak terlihat)")
+                print("✓ Mode: Headless (Browser tidak terlihat)")
 
             # Get tanggal
             try:
                 selected_date = get_date_input()
             except EOFError:
-                print("\n⚠️ Input dibatalkan, menggunakan tanggal hari ini...")
+                print("\n⚠ Input dibatalkan, menggunakan tanggal hari ini...")
                 selected_date = datetime.now()
             except KeyboardInterrupt:
-                print("\n⚠️ Input dibatalkan oleh user")
+                print("\n⚠ Input dibatalkan oleh user")
                 return
             except Exception as e:
-                print(f"⚠️ Error getting date input: {e}")
-                print("📅 Menggunakan tanggal hari ini...")
+                print(f"⚠ Error getting date input: {e}")
+                print("Menggunakan tanggal hari ini...")
                 selected_date = datetime.now()
 
             # Allow None for skipping date filter
             if selected_date is None:
-                print("✅ Melanjutkan tanpa filter tanggal")
+                print("✓ Melanjutkan tanpa filter tanggal")
             else:
-                print(f"✅ Menggunakan tanggal: {selected_date.strftime('%d/%m/%Y')}")
+                print(f"✓ Menggunakan tanggal: {selected_date.strftime('%d/%m/%Y')}")
 
             print()
 
@@ -428,19 +426,19 @@ def main():
             )
 
         elif choice == "2":
-            print("👋 Terima kasih!")
+            print("Terima kasih!")
             return
 
         else:
-            print("❌ Pilihan tidak valid")
+            print("✗ Pilihan tidak valid")
             return
 
     except EOFError:
-        print("\n\n⚠️ Input error - Program dihentikan")
+        print("\n\n⚠ Input error - Program dihentikan")
     except KeyboardInterrupt:
-        print("\n\n⚠️ Program dihentikan oleh user")
+        print("\n\n⚠ Program dihentikan oleh user")
     except Exception as e:
-        print(f"\n❌ Error: {str(e)}")
+        print(f"\n✗ Error: {str(e)}")
         logger.error(f"Error in main: {str(e)}", exc_info=True)
 
 
