@@ -17,7 +17,8 @@ from logging.handlers import RotatingFileHandler
 
 import pandas as pd
 
-from validators import is_valid_email, is_valid_phone, is_valid_pin
+# Updated import for modular structure
+from .validators import is_valid_email, is_valid_phone, is_valid_pin
 
 # Setup logger
 logger = logging.getLogger("playwright_automation")
@@ -27,8 +28,8 @@ logger = logging.getLogger("playwright_automation")
 # ============================================
 
 # Base directory untuk PlayWRight
-PLAYWRIGHT_DIR = os.path.dirname(os.path.abspath(__file__))
-BASE_DIR = os.path.dirname(PLAYWRIGHT_DIR)
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(CURRENT_DIR))
 
 # Direktori penting
 AKUN_DIR = os.path.join(BASE_DIR, "akun")

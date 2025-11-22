@@ -12,10 +12,10 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 # Import constants dari local module
 try:
-    from .constants import DEFAULT_DELAY
+    from modules.core.constants import DEFAULT_DELAY
 except ImportError:
     try:
-        from constants import DEFAULT_DELAY
+        from modules.core.constants import DEFAULT_DELAY
     except ImportError:
         DEFAULT_DELAY = 2.0
 

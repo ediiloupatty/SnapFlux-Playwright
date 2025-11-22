@@ -7,7 +7,7 @@ import json
 
 # Import config
 try:
-    from config import HEADLESS_MODE
+    from modules.core.config import HEADLESS_MODE
 except ImportError:
     HEADLESS_MODE = False  # Default fallback
 import base64
@@ -27,19 +27,19 @@ import eel
 sys.path.append(os.path.dirname(__file__))
 
 # Import modul automation
-from browser_setup import PlaywrightBrowserManager
-from data_extractor import get_stock_value_direct, get_tabung_terjual_direct
-from excel_handler import save_to_excel_pivot_format
-from export_handler import export_results_to_excel
-from internet_check import check_before_step, is_online, wait_for_internet
-from login_handler import login_direct
-from navigation_handler import (
+from modules.browser.setup import PlaywrightBrowserManager
+from modules.browser.extractor import get_stock_value_direct, get_tabung_terjual_direct
+from modules.data.excel import save_to_excel_pivot_format
+from modules.data.export import export_results_to_excel
+from modules.core.network import check_before_step, is_online, wait_for_internet
+from modules.browser.login import login_direct
+from modules.browser.navigation import (
     click_date_elements_direct,
     click_laporan_penjualan_direct,
 )
-from telemetry_manager import get_telemetry_manager
-from utils import load_accounts_from_excel, setup_logging
-from validators import (
+from modules.core.telemetry import get_telemetry_manager
+from modules.core.utils import load_accounts_from_excel, setup_logging
+from modules.core.validators import (
     is_valid_email,
     is_valid_phone,
     is_valid_pin,

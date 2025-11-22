@@ -11,6 +11,12 @@ import openpyxl
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
+try:
+    from modules.core.constants import RESULTS_DIR
+except ImportError:
+    # Fallback if constants not found (should not happen in correct structure)
+    RESULTS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "results")
+
 
 def export_results_to_excel(
     results: List[Dict], export_date: datetime, custom_filepath: str = None
@@ -32,8 +38,8 @@ def export_results_to_excel(
             # Ensure directory exists
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
         else:
-            # Buat folder results jika belum ada
-            results_dir = os.path.join(os.path.dirname(__file__), "results")
+            # Gunakan RESULTS_DIR dari constants
+            results_dir = RESULTS_DIR
             os.makedirs(results_dir, exist_ok=True)
 
             # Nama file dengan timestamp
@@ -185,8 +191,8 @@ def export_multi_date_results(
         str: Path file Excel yang di-generate
     """
     try:
-        # Buat folder results jika belum ada
-        results_dir = os.path.join(os.path.dirname(__file__), "results")
+        # Gunakan RESULTS_DIR dari constants
+        results_dir = RESULTS_DIR
         os.makedirs(results_dir, exist_ok=True)
 
         # Nama file dengan timestamp

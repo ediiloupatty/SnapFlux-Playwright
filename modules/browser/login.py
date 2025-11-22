@@ -11,10 +11,10 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 # Import constants dari local module
 try:
-    from .constants import DEFAULT_DELAY, LOGIN_URL
+    from modules.core.constants import DEFAULT_DELAY, LOGIN_URL
 except ImportError:
     try:
-        from constants import DEFAULT_DELAY, LOGIN_URL
+        from modules.core.constants import DEFAULT_DELAY, LOGIN_URL
     except ImportError:
         LOGIN_URL = "https://subsiditepatlpg.mypertamina.id/merchant-login"
         DEFAULT_DELAY = 2.0

@@ -11,8 +11,8 @@ from datetime import datetime
 # ============================================
 
 # Base directory untuk PlayWRight
-PLAYWRIGHT_DIR = os.path.dirname(os.path.abspath(__file__))
-BASE_DIR = os.path.dirname(PLAYWRIGHT_DIR)
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(CURRENT_DIR))
 
 # Direktori penting
 AKUN_DIR = os.path.join(BASE_DIR, "akun")

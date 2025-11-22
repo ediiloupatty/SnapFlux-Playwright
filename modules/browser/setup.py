@@ -20,13 +20,13 @@ logger = logging.getLogger("browser_setup")
 
 # Import config module
 try:
-    from .config import (
+    from modules.core.config import (
         CHROME_BINARY_PATH,
         DEFAULT_TIMEOUT,
         NAVIGATION_TIMEOUT,
         is_headless_mode,
     )
-    from .config import (
+    from modules.core.config import (
         get_chrome_binary as get_chrome_from_config,
     )
 except ImportError:

@@ -13,20 +13,20 @@ from datetime import datetime
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 # Import modul Playwright
-from PlayWRight.browser_setup import PlaywrightBrowserManager
-from PlayWRight.data_extractor import get_stock_value_direct, get_tabung_terjual_direct
+from modules.browser.setup import PlaywrightBrowserManager
+from modules.browser.extractor import get_stock_value_direct, get_tabung_terjual_direct
 
 # Import utility dari PlayWRight local modules
-from PlayWRight.excel_handler import save_to_excel_pivot_format
-from PlayWRight.login_handler import login_direct
-from PlayWRight.navigation_handler import click_laporan_penjualan_direct, click_date_elements_direct
-from PlayWRight.utils import (
+from modules.data.excel import save_to_excel_pivot_format
+from modules.browser.login import login_direct
+from modules.browser.navigation import click_laporan_penjualan_direct, click_date_elements_direct
+from modules.core.utils import (
     get_date_input,
     load_accounts_from_excel,
     print_account_stats,
     setup_logging,
 )
-from PlayWRight.validators import (
+from modules.core.validators import (
     is_valid_email,
     is_valid_phone,
     is_valid_pin,
@@ -35,7 +35,7 @@ from PlayWRight.validators import (
 
 # Import enhanced configuration (backward compatible)
 try:
-    from PlayWRight.config import is_headless_mode as config_is_headless
+    from modules.core.config import is_headless_mode as config_is_headless
 
     USE_ENHANCED_CONFIG = True
 except ImportError:
