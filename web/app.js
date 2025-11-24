@@ -104,7 +104,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const trySetupNavigation = () => {
     const navItems = document.querySelectorAll(".nav-item");
-    if (navItems.length === 4) {
+    if (navItems.length === 5) {
       setupNavigation();
       console.log("✅ Navigation setup successful");
     } else if (retryCount < maxRetries) {
@@ -187,6 +187,7 @@ function setupNavigation() {
         Otomasi: "automation",
         Hasil: "results",
         Pengaturan: "settings",
+        Tentang: "about",
       };
 
       const navText = navItem.textContent.trim();
@@ -267,6 +268,7 @@ function showPage(pageName) {
       automation: "Otomasi",
       results: "Hasil",
       settings: "Pengaturan",
+      about: "Tentang",
     };
 
     navItems.forEach((item) => {
@@ -283,6 +285,7 @@ function showPage(pageName) {
       automation: "Kontrol Otomasi",
       results: "Hasil Export",
       settings: "Pengaturan",
+      about: "Tentang SnapFlux",
     };
     const pageTitleElement = document.getElementById("page-title");
     if (pageTitleElement && pageTitles[pageName]) {
@@ -369,6 +372,7 @@ console.log("  nav('dashboard') - Navigate to dashboard");
 console.log("  nav('automation') - Navigate to automation");
 console.log("  nav('results') - Navigate to results");
 console.log("  nav('settings') - Navigate to settings");
+console.log("  nav('about') - Navigate to about");
 
 // ============================================
 // EXCEL FILE MANAGEMENT
@@ -1427,6 +1431,12 @@ function updateHeaderInfo(pageName) {
       subtitle: "Konfigurasi preferensi aplikasi",
       icon: "fa-sliders",
       breadcrumb: "Pengaturan",
+    },
+    about: {
+      title: "Tentang SnapFlux",
+      subtitle: "Informasi tentang aplikasi",
+      icon: "fa-info-circle",
+      breadcrumb: "Tentang",
     },
   };
 
