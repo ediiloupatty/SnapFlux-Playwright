@@ -39,21 +39,15 @@ from modules.browser.navigation import (
 )
 from modules.core.telemetry import get_telemetry_manager
 from modules.core.utils import load_accounts_from_excel, setup_logging
-from modules.core.validators import (
-    is_valid_email,
-    is_valid_phone,
-    is_valid_pin,
-    validate_username,
-)
+from modules.core.process_manager import ProcessManager
 
 # Setup logger
 logger = logging.getLogger("gui_automation")
 
 # Global variables untuk kontrol automation
 automation_thread = None
-automation_running = False
-automation_paused = False
-stop_event = Event()
+process_manager_instance = None
+
 
 # Global variables untuk menyimpan hasil
 automation_results = []
@@ -256,15 +250,11 @@ def start_automation(accounts, settings):
     Returns:
         dict: {"success": bool, "message": str}
     """
-    global automation_thread, automation_running, stop_event
+    global automation_thread, process_manager_instance
 
     try:
-        if automation_running:
-            return {"success": False, "message": "Automation sedang berjalan"}
-
-        # Reset stop event
-        stop_event.clear()
-        automation_running = True
+        if process_manager_instance and process_manager_instance.stop_requested == False and automation_thread and automation_thread.is_alive():
+             return {"success": False, "message": "Automation sedang berjalan"}
 
         # Parse tanggal jika ada
         selected_date = None
@@ -273,10 +263,13 @@ def start_automation(accounts, settings):
                 selected_date = datetime.strptime(settings["date"], "%Y-%m-%d")
             except Exception:
                 selected_date = None
+        
+        # Pass date object to settings for manager
+        settings["date_obj"] = selected_date
 
         # Jalankan automation di thread terpisah
         automation_thread = Thread(
-            target=run_automation_background, args=(accounts, selected_date, settings)
+            target=run_automation_background, args=(accounts, settings)
         )
         automation_thread.daemon = True
         automation_thread.start()
@@ -284,7 +277,6 @@ def start_automation(accounts, settings):
         return {"success": True, "message": "Automation dimulai"}
 
     except Exception as e:
-        automation_running = False
         logger.error(f"Error starting automation: {str(e)}", exc_info=True)
         return {"success": False, "message": f"Error: {str(e)}"}
 
@@ -292,15 +284,21 @@ def start_automation(accounts, settings):
 @eel.expose
 def pause_automation():
     """Pause automation yang sedang berjalan"""
-    global automation_paused
-    automation_paused = not automation_paused
+    global process_manager_instance
+    
+    if not process_manager_instance:
+        return {"success": False, "message": "Automation tidak berjalan"}
 
-    status = "paused" if automation_paused else "resumed"
-    eel.log_message(f"Automation {status}", "warning")
+    if process_manager_instance.pause_requested:
+        process_manager_instance.resume()
+        status = "resumed"
+    else:
+        process_manager_instance.pause()
+        status = "paused"
 
     return {
         "success": True,
-        "paused": automation_paused,
+        "paused": process_manager_instance.pause_requested,
         "message": f"Automation {status}",
     }
 
@@ -308,315 +306,54 @@ def pause_automation():
 @eel.expose
 def stop_automation():
     """Stop automation yang sedang berjalan"""
-    global automation_running, stop_event
+    global process_manager_instance
 
-    stop_event.set()
-    automation_running = False
-
-    eel.log_message("Automation dihentikan oleh user", "error")
+    if process_manager_instance:
+        process_manager_instance.stop()
+        eel.log_message("Automation dihentikan oleh user", "error")
 
     return {"success": True, "message": "Automation dihentikan"}
 
 
-def run_automation_background(accounts, selected_date, settings):
+def run_automation_background(accounts, settings):
     """
-    Fungsi background untuk menjalankan automation
+    Fungsi background untuk menjalankan automation menggunakan ProcessManager
     """
-    global \
-        automation_running, \
-        automation_paused, \
-        automation_results, \
-        automation_export_date
+    global process_manager_instance, automation_results, automation_export_date
 
     try:
-        # Reset telemetry untuk session baru
-        telemetry_manager.reset()
-
-        eel.log_message("Memulai proses automation...", "info")
-
-        headless_mode = settings.get("headless", HEADLESS_MODE)
-        delay = settings.get("delay", 2.0)
-        # use_session = settings.get("use_session", True) # REMOVED: Always fresh login
-
-        results = []
-        # Only reset global results if it's a fresh start (e.g. user cleared logs or explicitly requested reset)
-        # For now, we'll append to keep history until cleared manually
+        # Define callbacks
+        callbacks = {
+            "on_log": eel.log_message,
+            "on_progress": eel.update_overall_progress,
+            "on_account_status": eel.update_account_status,
+            "on_result": lambda res: None # We handle results in bulk at the end or via global list
+        }
+        
+        # Initialize Manager
+        process_manager_instance = ProcessManager(callbacks)
+        
+        # Prepare global results
         if not automation_results:
             automation_results = []
-
-        automation_export_date = selected_date if selected_date else datetime.now()
-        total_accounts = len(accounts)
-
-        for idx, account in enumerate(accounts):
-            # Check if stopped
-            if stop_event.is_set():
-                eel.log_message("Automation dihentikan", "error")
-                break
-
-            # Check if paused
-            while automation_paused:
-                time.sleep(0.5)
-                if stop_event.is_set():
-                    break
-
-            nama = account["nama"]
-            username = account["username"]
-            pin = account["pin"]
-
-            # Start telemetry tracking
-            telemetry_manager.record_account_start(username)
-
-            # Update overall progress at the start of each account
-            progress_percent = int((idx / total_accounts) * 100)
-            eel.update_overall_progress(idx, total_accounts, progress_percent)
-
-            # Update status
-            eel.update_account_status(account["id"], "processing", 0)
-            eel.log_message(f"Memproses: {nama} ({username})", "info")
-
-            browser_manager = None
-
-            try:
-                # ===== CHECK INTERNET SEBELUM SETUP BROWSER =====
-                if not check_before_step(
-                    "setup browser",
-                    username,
-                    max_wait=300,
-                    log_callback=eel.log_message,
-                ):
-                    eel.update_account_status(account["id"], "error", 0)
-                    eel.log_message(
-                        f"❌ Timeout menunggu koneksi internet untuk {nama}", "error"
-                    )
-                    telemetry_manager.record_account_failure(
-                        username, "connection_timeout"
-                    )
-                    continue
-
-                # Setup browser
-                eel.update_account_status(account["id"], "processing", 10)
-                eel.log_message(f"Setup browser untuk {nama}...", "info")
-
-                telemetry_manager.start_operation("browser_setup", username)
-                browser_manager = PlaywrightBrowserManager()
-                # Force no session usage
-                page = browser_manager.setup_browser(
-                    headless=headless_mode,
-                    username=None,
-                    use_session=False,
-                )
-                telemetry_manager.end_operation("browser_setup", username)
-
-                # Tambahkan delay untuk stabilitas di mode GUI
-                if not headless_mode:
-                    time.sleep(2.0)
-
-                if not page:
-                    eel.update_account_status(account["id"], "error", 0)
-                    eel.log_message(f"Gagal setup browser untuk {nama}", "error")
-                    telemetry_manager.record_account_failure(
-                        username, "browser_setup_failed"
-                    )
-                    continue
-
-                # ===== CHECK INTERNET SEBELUM LOGIN =====
-                if not check_before_step(
-                    "login", username, max_wait=300, log_callback=eel.log_message
-                ):
-                    eel.update_account_status(account["id"], "error", 0)
-                    eel.log_message(
-                        f"❌ Timeout menunggu koneksi internet untuk login {nama}",
-                        "error",
-                    )
-                    telemetry_manager.record_account_failure(
-                        username, "connection_timeout_login"
-                    )
-                    if browser_manager:
-                        browser_manager.close()
-                    continue
-
-                # Login (SELALU LOGIN BARU)
-                eel.update_account_status(account["id"], "processing", 30)
-                eel.log_message(f"Login untuk {nama}...", "info")
-
-                telemetry_manager.start_operation("login", username)
-                success, gagal_info = login_direct(page, username, pin)
-                telemetry_manager.end_operation("login", username)
-
-                if not success:
-                    eel.update_account_status(account["id"], "error", 0)
-                    eel.log_message(f"Login gagal untuk {nama}", "error")
-                    telemetry_manager.record_account_failure(username, "login_failed")
-                    browser_manager.close()
-                    continue
-
-                eel.log_message(f"Login berhasil untuk {nama}", "success")
-
-                # ===== CHECK INTERNET SEBELUM AMBIL DATA =====
-                if not check_before_step(
-                    "get data", username, max_wait=300, log_callback=eel.log_message
-                ):
-                    eel.update_account_status(account["id"], "error", 0)
-                    eel.log_message(
-                        f"❌ Timeout menunggu koneksi internet untuk ambil data {nama}",
-                        "error",
-                    )
-                    telemetry_manager.record_account_failure(
-                        username, "connection_timeout_data"
-                    )
-                    if browser_manager:
-                        browser_manager.close()
-                    continue
-
-                # Ambil stok
-                eel.update_account_status(account["id"], "processing", 50)
-                eel.log_message(f"Mengambil stok untuk {nama}...", "info")
-
-                telemetry_manager.start_operation("get_stock", username)
-                stok_value = get_stock_value_direct(page)
-                telemetry_manager.end_operation("get_stock", username)
-                if stok_value:
-                    eel.log_message(f"Stok {nama}: {stok_value} tabung", "success")
-                else:
-                    eel.log_message(f"Gagal ambil stok untuk {nama}", "warning")
-
-                # Navigasi ke Laporan Penjualan
-                eel.update_account_status(account["id"], "processing", 70)
-                eel.log_message(f"Mengambil data penjualan untuk {nama}...", "info")
-
-                tabung_terjual = None
-                if click_laporan_penjualan_direct(page):
-                    # === FILTER TANGGAL (4 STEPS) ===
-                    if selected_date:
-                        eel.log_message(
-                            f"Menerapkan filter tanggal: {selected_date.strftime('%d/%m/%Y')}",
-                            "info",
-                        )
-                        if click_date_elements_direct(page, selected_date):
-                            eel.log_message(
-                                "Filter tanggal berhasil diterapkan", "success"
-                            )
-                        else:
-                            eel.log_message(
-                                "Gagal menerapkan filter tanggal", "warning"
-                            )
-                    # ================================
-
-                    tabung_terjual = get_tabung_terjual_direct(page)
-                    if tabung_terjual is not None:
-                        eel.log_message(
-                            f"Tabung terjual {nama}: {tabung_terjual}", "success"
-                        )
-                    else:
-                        eel.log_message(
-                            f"Gagal ambil tabung terjual untuk {nama}",
-                            "warning",
-                        )
-                else:
-                    eel.log_message(
-                        f"Gagal navigasi ke Laporan Penjualan untuk {nama}",
-                        "warning",
-                    )
-
-                # Simpan hasil
-                eel.update_account_status(account["id"], "processing", 90)
-
-                # Helper untuk konversi aman ke int
-                def safe_int(val):
-                    try:
-                        if val is None:
-                            return 0
-                        return int(str(val).replace(".", "").replace(",", ""))
-                    except:
-                        return 0
-
-                stok_int = safe_int(stok_value)
-                terjual_int = safe_int(tabung_terjual)
-
-                stok_formatted = f"{stok_int} Tabung"
-                tabung_formatted = f"{terjual_int} Tabung"
-
-                status = "Ada Penjualan" if terjual_int > 0 else "Tidak Ada Penjualan"
-
-                result = {
-                    "pangkalan_id": username,
-                    "nama": nama,
-                    "username": username,
-                    "stok": stok_formatted,
-                    "tabung_terjual": tabung_formatted,
-                    "status": status,
-                }
-                results.append(result)
-                automation_results.append(result)  # Save to global for export
-
-                # Simpan ke Excel
-                save_date = selected_date if selected_date else datetime.now()
-                tanggal_check = save_date.strftime("%Y-%m-%d")
-
-                save_to_excel_pivot_format(
-                    pangkalan_id=username,
-                    nama_pangkalan=nama,
-                    tanggal_check=tanggal_check,
-                    stok_awal=stok_formatted,
-                    total_inputan=tabung_formatted,
-                    status=status,
-                    selected_date=save_date,
-                )
-
-                # Record success
-                telemetry_manager.record_account_success(
-                    username,
-                    {
-                        "stok": stok_formatted,
-                        "terjual": tabung_formatted,
-                        "status": status,
-                    },
-                )
-
-                # Record business metrics (NEW)
-                telemetry_manager.record_business_metrics(stok_int, terjual_int)
-
-                eel.update_account_status(account["id"], "done", 100)
-                eel.log_message(
-                    f"Selesai: {nama} - Stok: {stok_formatted}, Terjual: {tabung_formatted}",
-                    "success",
-                )
-
-                eel.update_overall_progress(idx + 1, total_accounts, progress_percent)
-
-            except Exception as e:
-                eel.update_account_status(account["id"], "error", 0)
-                eel.log_message(f"Error untuk {nama}: {str(e)}", "error")
-                logger.error(f"Error processing {nama}: {str(e)}", exc_info=True)
-                telemetry_manager.record_account_failure(username, "exception", str(e))
-
-            finally:
-                # Delay sejenak sebelum menutup browser agar user bisa melihat hasil akhir
-                if not headless_mode:
-                    time.sleep(1.0)
-
-                if browser_manager:
-                    browser_manager.close()
-
-                # Delay antar akun
-                if idx < total_accounts - 1 and not stop_event.is_set():
-                    eel.log_message(f"Delay {delay} detik...", "info")
-                    time.sleep(delay)
-
-        # Selesai
-        eel.log_message(
-            f"Automation selesai! Total: {len(results)} akun berhasil diproses",
-            "success",
-        )
-        eel.automation_completed(len(results), total_accounts)
+            
+        automation_export_date = settings.get("date_obj") if settings.get("date_obj") else datetime.now()
+        
+        # Run Process
+        results = process_manager_instance.run(accounts, settings)
+        
+        # Update global results
+        automation_results.extend(results)
+        
+        # Completion event
+        eel.automation_completed(len(results), len(accounts))
 
     except Exception as e:
         eel.log_message(f"Error automation: {str(e)}", "error")
         logger.error(f"Error in automation: {str(e)}", exc_info=True)
 
     finally:
-        automation_running = False
-        automation_paused = False
+        process_manager_instance = None
 
 
 @eel.expose
@@ -761,7 +498,10 @@ def get_export_ready_status():
 @eel.expose
 def get_automation_status():
     """Get status automation saat ini"""
-    return {"running": automation_running, "paused": automation_paused}
+    global process_manager_instance
+    running = process_manager_instance is not None
+    paused = process_manager_instance.pause_requested if running else False
+    return {"running": running, "paused": paused}
 
 
 @eel.expose

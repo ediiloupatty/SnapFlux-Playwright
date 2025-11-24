@@ -77,52 +77,32 @@ def is_docker_environment():
     return any(docker_indicators)
 
 
-# Enhanced configuration support (backward compatible)
-try:
-    import sys
+def get_chrome_binary():
+    """
+    Get Chrome binary path with priority:
+    1. Environment Variable
+    2. Config Module
+    3. Docker Default
+    4. Hardcoded Fallback
+    """
+    # 1. Environment Variable
+    env_chrome = os.environ.get("CHROME_BINARY_PATH")
+    if env_chrome and os.path.exists(env_chrome):
+        return env_chrome
 
-    sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-    from src.config_manager import config_manager
+    # 2. Config Module
+    chrome_from_config = get_chrome_from_config()
+    if chrome_from_config and os.path.exists(chrome_from_config):
+        return chrome_from_config
 
-    def get_chrome_binary():
-        # Priority: environment > config module > config_manager > fallback
-        env_chrome = os.environ.get("CHROME_BINARY_PATH")
-        if env_chrome and os.path.exists(env_chrome):
-            return env_chrome
-
-        chrome_from_config = get_chrome_from_config()
-        if chrome_from_config and os.path.exists(chrome_from_config):
-            return chrome_from_config
-
-        if is_docker_environment():
-            docker_chrome = os.environ.get(
-                "CHROME_BINARY_PATH", "/usr/bin/google-chrome"
-            )
-            if os.path.exists(docker_chrome):
-                return docker_chrome
-        return config_manager.get(
-            "chrome_binary", os.environ.get("CHROME_BINARY_PATH", CHROME_BINARY)
-        )
-
-except ImportError:
-
-    def get_chrome_binary():
-        # Priority: environment > config module > fallback
-        env_chrome = os.environ.get("CHROME_BINARY_PATH")
-        if env_chrome and os.path.exists(env_chrome):
-            return env_chrome
-
-        chrome_from_config = get_chrome_from_config()
-        if chrome_from_config and os.path.exists(chrome_from_config):
-            return chrome_from_config
-
-        if is_docker_environment():
-            docker_chrome = os.environ.get(
-                "CHROME_BINARY_PATH", "/usr/bin/google-chrome"
-            )
-            if os.path.exists(docker_chrome):
-                return docker_chrome
-        return os.environ.get("CHROME_BINARY_PATH", CHROME_BINARY)
+    # 3. Docker Default
+    if is_docker_environment():
+        docker_chrome = "/usr/bin/google-chrome"
+        if os.path.exists(docker_chrome):
+            return docker_chrome
+            
+    # 4. Hardcoded Fallback
+    return CHROME_BINARY
 
 
 class PlaywrightBrowserManager:

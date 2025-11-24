@@ -19,7 +19,7 @@ from modules.browser.extractor import get_stock_value_direct, get_tabung_terjual
 # Import utility dari PlayWRight local modules
 from modules.data.excel import save_to_excel_pivot_format
 from modules.browser.login import login_direct
-from modules.browser.navigation import click_laporan_penjualan_direct, click_date_elements_direct
+from modules.core.process_manager import ProcessManager
 from modules.core.utils import (
     get_date_input,
     load_accounts_from_excel,
@@ -89,203 +89,56 @@ def run_cek_stok_playwright(accounts, selected_date, headless_mode=None):
     else:
         print("Browser akan berjalan dengan GUI visible (terlihat)")
 
-    # Inisialisasi tracking
-    total_start = time.time()
-    results = []
-    rekap = {
-        "sukses": [],
-        "gagal_login": [],
-        "gagal_navigasi": [],
-        "gagal_waktu": [],
-        "gagal_masuk_akun": [],
-        "gagal_masuk_akun_count": 0,
+    # Callbacks untuk CLI
+    def on_log(message, level):
+        prefix = "✓" if level == "success" else "✗" if level == "error" else "⚠" if level == "warning" else "ℹ"
+        # Filter some verbose logs if needed, or just print all
+        if level in ["success", "error", "warning"] or "Memproses" in message:
+            print(f"{prefix} {message}")
+            
+    def on_progress(current, total, percent):
+        # Simple progress indicator
+        pass
+
+    def on_account_status(account_id, status, progress):
+        pass
+        
+    def on_result(result):
+        # Print result immediately
+        print(f"   Stok: {result['stok']}")
+        print(f"   Terjual: {result['tabung_terjual']}")
+        print(f"   Status: {result['status']}")
+
+    # Setup Manager
+    callbacks = {
+        "on_log": on_log,
+        "on_progress": on_progress,
+        "on_account_status": on_account_status,
+        "on_result": on_result
     }
-
-    # Loop pemrosesan setiap akun
-    for account_index, (nama, username, pin) in enumerate(accounts):
-        print(f"\n{'=' * 60}")
-        print(f"Memproses akun: {username} ({nama})")
-        print(f"Progress: {account_index + 1}/{len(accounts)}")
-        print(f"{'=' * 60}")
-
-        akun_start = time.time()
-        browser_manager = None
-        page = None
-
-        try:
-            # Setup browser Playwright
-            print("Inisialisasi Playwright Browser...")
-            browser_manager = PlaywrightBrowserManager()
-            page = browser_manager.setup_browser(headless=headless_mode)
-
-            if not page:
-                print("✗ Gagal setup browser Playwright")
-                rekap["gagal_navigasi"].append(username)
-                continue
-
-            # Login ke akun merchant
-            success, gagal_info = login_direct(page, username, pin)
-
-            # Track gagal masuk akun
-            if gagal_info.get("gagal_masuk_akun", False):
-                rekap["gagal_masuk_akun"].append(username)
-                rekap["gagal_masuk_akun_count"] += gagal_info.get("count", 0)
-
-            if not success:
-                print(f"✗ Login gagal untuk {username}")
-                rekap["gagal_login"].append(username)
-                browser_manager.close()
-                continue
-
-            print("✓ Login berhasil!")
-
-            # === TAHAP 1: AMBIL STOK DARI DASHBOARD ===
-            print("\n=== TAHAP 1: AMBIL STOK DARI DASHBOARD ===")
-            stok_value = None
-
-            # Ambil stok langsung dari dashboard (tidak perlu navigasi ke Atur Produk)
-            stok_value = get_stock_value_direct(page)
-            if stok_value:
-                print(f"✓ Stok berhasil diambil dari dashboard: {stok_value} tabung")
-            else:
-                print("⚠ Gagal mengambil stok dari dashboard")
-
-            # === TAHAP 2: NAVIGASI KE LAPORAN PENJUALAN & AMBIL TABUNG TERJUAL ===
-            print("\n=== TAHAP 2: AMBIL DATA PENJUALAN ===")
-            tabung_terjual = None
-
-            # Navigasi ke Laporan Penjualan
-            if click_laporan_penjualan_direct(page):
-                print("✓ Berhasil masuk ke Laporan Penjualan")
-
-                # === FILTER TANGGAL (4 STEPS) ===
-                if selected_date:
-                    print(f"📅 Menerapkan filter tanggal: {selected_date.strftime('%d/%m/%Y')}")
-                    if click_date_elements_direct(page, selected_date):
-                        print("✓ Filter tanggal berhasil diterapkan")
-                    else:
-                        print("⚠ Gagal menerapkan filter tanggal")
-                # ================================
-
-                # Ambil data tabung terjual langsung dari Data Penjualan
-                # (tidak perlu klik Rekap Penjualan)
-                tabung_terjual = get_tabung_terjual_direct(page)
-                if tabung_terjual is not None:
-                    print(f"✓ Tabung terjual berhasil diambil: {tabung_terjual} tabung")
-                else:
-                    print("⚠ Gagal mengambil tabung terjual")
-            else:
-                print("✗ Gagal navigasi ke Laporan Penjualan")
-
-            # === SELESAI - TIDAK ADA PROSES LAIN ===
-
-            # Simpan hasil dengan format yang sama seperti Selenium
-            akun_waktu = time.time() - akun_start
-
-            stok_formatted = f"{stok_value} Tabung" if stok_value else "0 Tabung"
-            tabung_formatted = (
-                f"{tabung_terjual} Tabung" if tabung_terjual is not None else "0 Tabung"
-            )
-
-            # Tentukan status penjualan
-            if tabung_terjual and tabung_terjual > 0:
-                status = "Ada Penjualan"
-            else:
-                status = "Tidak Ada Penjualan"
-
-            result = {
-                "pangkalan_id": username,  # Gunakan username sebagai ID
-                "nama": nama,
-                "username": username,
-                "stok": stok_formatted,
-                "tabung_terjual": tabung_formatted,
-                "status": status,
-                "waktu": akun_waktu,
-            }
-            results.append(result)
-            rekap["sukses"].append(username)
-
-            print(f"\n✓ Selesai memproses {username}")
-            print(f"   Stok: {stok_formatted}")
-            print(f"   Terjual: {tabung_formatted}")
-            print(f"   ✓ Status: {status}")
-            print(f"Waktu: {akun_waktu:.2f} detik")
-
-        except Exception as e:
-            print(f"✗ Error memproses {username}: {str(e)}")
-            logger.error(f"Error memproses {username}: {str(e)}", exc_info=True)
-            rekap["gagal_navigasi"].append(username)
-
-        finally:
-            # Cleanup browser
-            if browser_manager:
-                browser_manager.close()
-
-            # Delay antar akun untuk anti-rate limiting
-            if account_index < len(accounts) - 1:
-                delay = 2.0
-                print(f"Delay {delay} detik sebelum akun berikutnya...")
-                time.sleep(delay)
-
-    # === SIMPAN HASIL KE EXCEL ===
-    print(f"\n{'=' * 60}")
-    print("Menyimpan hasil ke Excel...")
-    print(f"{'=' * 60}")
-
-    if results:
-        try:
-            # Gunakan tanggal hari ini jika selected_date adalah None
-            save_date = selected_date if selected_date else datetime.now()
-
-            # Format tanggal untuk Excel
-            tanggal_check = save_date.strftime("%Y-%m-%d")
-
-            # Simpan setiap result ke Excel dengan format Selenium
-            for result in results:
-                try:
-                    save_to_excel_pivot_format(
-                        pangkalan_id=result["pangkalan_id"],
-                        nama_pangkalan=result["nama"],
-                        tanggal_check=tanggal_check,
-                        stok_awal=result["stok"],
-                        total_inputan=result["tabung_terjual"],
-                        status=result["status"],
-                        selected_date=save_date,
-                    )
-                    print(
-                        f"  ✓ Saved: {result['nama']} - {result['stok']} / {result['tabung_terjual']}"
-                    )
-                except Exception as e:
-                    print(f"  ✗ Error saving {result['nama']}: {str(e)}")
-
-            print("\n✓ Semua data berhasil disimpan ke Excel!")
-        except Exception as e:
-            print(f"✗ Error menyimpan ke Excel: {str(e)}")
-            logger.error(f"Error saving to Excel: {str(e)}", exc_info=True)
-
-    # === TAMPILKAN REKAP ===
-    total_waktu = time.time() - total_start
+    
+    manager = ProcessManager(callbacks)
+    
+    # Settings
+    settings = {
+        "headless": headless_mode,
+        "date_obj": selected_date,
+        "delay": 2.0
+    }
+    
+    # Run
+    start_time = time.time()
+    results = manager.run(accounts, settings)
+    total_waktu = time.time() - start_time
+    
+    # Summary
     print(f"\n{'=' * 60}")
     print("REKAP PROSES CEK STOK (PLAYWRIGHT)")
     print(f"{'=' * 60}")
-    print(f"✓ Sukses: {len(rekap['sukses'])} akun")
-    print(f"✗ Gagal Login: {len(rekap['gagal_login'])} akun")
-    print(f"✗ Gagal Navigasi: {len(rekap['gagal_navigasi'])} akun")
-    print(f"⚠ Gagal Masuk Akun: {rekap['gagal_masuk_akun_count']} kali")
+    print(f"Total Akun: {len(accounts)}")
+    print(f"Berhasil: {len(results)}")
     print(f"Total Waktu: {total_waktu:.2f} detik")
     print(f"{'=' * 60}")
-
-    # Tampilkan detail hasil
-    if results:
-        print(f"\nDETAIL HASIL:")
-        for result in results:
-            print(
-                f"  • {result['nama']} ({result['username']}): "
-                f"Stok={result['stok']}, "
-                f"Terjual={result['tabung_terjual']}, "
-                f"Status={result['status']}, "
-                f"Waktu={result['waktu']:.2f}s"
-            )
 
 
 def main():
