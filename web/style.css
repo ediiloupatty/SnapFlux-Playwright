@@ -162,7 +162,7 @@ body {
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
-    border-right: 3px solid var(--primary);
+    border-right: 1px solid rgba(100, 116, 139, 0.2);
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
 }
 
@@ -248,12 +248,12 @@ body {
 
 .nav-item.active {
     background: linear-gradient(90deg,
-            rgba(14, 176, 242, 0.8) 0%,
-            rgba(14, 176, 242, 0.4) 100%);
+            rgba(100, 116, 139, 0.2) 0%,
+            rgba(100, 116, 139, 0.1) 100%);
     color: #ffffff;
-    border-left: 4px solid #ffffff;
+    border-left: 3px solid rgba(255, 255, 255, 0.5);
     font-weight: 700;
-    box-shadow: 0 2px 12px rgba(14, 176, 242, 0.5);
+    box-shadow: 0 2px 12px rgba(100, 116, 139, 0.15);
 }
 
 .nav-item i {
@@ -769,8 +769,16 @@ body.sidebar-collapsed .account-status-indicator {
     justify-content: space-between;
 }
 
+.gap-1 {
+    gap: 0.25rem;
+}
+
 .gap-2 {
     gap: 0.5rem;
+}
+
+.gap-3 {
+    gap: 0.75rem;
 }
 
 .gap-4 {

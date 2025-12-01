@@ -505,18 +505,25 @@ function renderAccounts() {
     accountDiv.className = "account-list-item";
 
     accountDiv.innerHTML = `
-            <label class="flex items-center gap-4 cursor-pointer w-full">
-                <input
-                    type="checkbox"
-                    id="check-${account.id}"
-                    class="account-checkbox"
-                    checked
-                    onchange="updateStatistics()"
-                >
-                <div class="account-info">
-                    <div class="account-name">${account.nama}</div>
+            <div class="flex items-center justify-between gap-4 w-full">
+                <label class="flex items-center gap-3 cursor-pointer flex-1 min-w-0">
+                    <input
+                        type="checkbox"
+                        id="check-${account.id}"
+                        class="account-checkbox shrink-0"
+                        checked
+                        onchange="updateStatistics()"
+                    >
+                    <div class="account-name truncate font-medium text-gray-700">${account.nama}</div>
+                </label>
+                
+                <div class="flex flex-col items-end shrink-0 gap-2">
+                    <div id="status-badge-${account.id}" class="text-xs font-medium px-2 py-1 rounded bg-slate-100 text-slate-500">
+                        Menunggu
+                    </div>
+                    <div id="error-msg-${account.id}" class="text-[11px] text-right hidden"></div>
                 </div>
-            </label>
+            </div>
 
             <div class="absolute bottom-0 left-0 w-full h-0.5 bg-gray-100">
                 <div id="progress-${account.id}" class="h-full bg-indigo-500 transition-all duration-300" style="width: 0%"></div>
@@ -750,15 +757,19 @@ function updateControlButtons() {
 
 function resetAccountStatuses() {
   accounts.forEach((account) => {
-    const statusBadge = document.getElementById(`status-${account.id}`);
+    const statusBadge = document.getElementById(`status-badge-${account.id}`);
     const progressBar = document.getElementById(`progress-${account.id}`);
-    const indicator = document.getElementById(`indicator-${account.id}`);
+    const errorMsg = document.getElementById(`error-msg-${account.id}`);
 
     if (statusBadge) {
       statusBadge.textContent = "Menunggu";
-      statusBadge.className = "text-xs font-bold text-muted";
+      statusBadge.className = "text-xs font-medium px-2 py-1 rounded bg-slate-100 text-slate-500 shrink-0";
+      statusBadge.innerHTML = "Menunggu";
     }
-    if (indicator) indicator.className = "account-status-indicator";
+    if (errorMsg) {
+      errorMsg.textContent = "";
+      errorMsg.className = "text-[11px] text-right hidden";
+    }
     if (progressBar) progressBar.style.width = "0%";
   });
   updateStatistics();
@@ -800,13 +811,74 @@ function update_account_status(accountId, status, progress) {
         statusText = "Menyimpan data ke Excel...";
         break;
       case "done":
-        statusText = "Akun berhasil diproses!";
+        statusText = "Selesai";
         break;
       case "error":
-        statusText = "Terjadi kesalahan saat memproses";
+        statusText = "Gagal";
         break;
       default:
-        statusText = "Menunggu giliran proses...";
+        statusText = "Menunggu";
+    }
+  }
+
+  // Update Status Badge & Error Message on Dashboard
+  const statusBadge = document.getElementById(`status-badge-${accountId}`);
+  const errorMsgDiv = document.getElementById(`error-msg-${accountId}`);
+
+  if (statusBadge) {
+    // Reset classes
+    statusBadge.className = "text-xs font-medium px-2 py-1 rounded shrink-0";
+
+    if (status === "processing") {
+      statusBadge.textContent = "Memproses...";
+      statusBadge.classList.add("bg-blue-100", "text-blue-600");
+      statusBadge.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Proses';
+    } else if (status === "done") {
+      statusBadge.textContent = "Berhasil";
+      statusBadge.classList.add("bg-green-100", "text-green-600");
+      statusBadge.innerHTML = '<i class="fas fa-check mr-1"></i> Berhasil';
+    } else if (status === "error") {
+      statusBadge.textContent = "Gagal";
+      statusBadge.classList.add("bg-red-100", "text-red-600");
+      statusBadge.innerHTML = '<i class="fas fa-times mr-1"></i> Gagal';
+    } else {
+      statusBadge.textContent = "Menunggu";
+      statusBadge.classList.add("bg-slate-100", "text-slate-500");
+    }
+  }
+
+  if (errorMsgDiv) {
+    // Reset base classes but keep layout
+    errorMsgDiv.className = "text-[11px] text-right";
+
+    if (status === "error") {
+      // Only show message if it's not generic "Gagal"
+      if (statusText && statusText !== "Gagal" && statusText !== "error") {
+        errorMsgDiv.textContent = statusText;
+        errorMsgDiv.classList.add("text-red-500");
+
+        // Customize error message based on content
+        if (statusText.includes("Login gagal")) {
+          errorMsgDiv.innerHTML = 'Login Gagal <i class="fas fa-key ml-1"></i>';
+        } else if (statusText.includes("koneksi")) {
+          errorMsgDiv.innerHTML = 'Masalah Koneksi <i class="fas fa-wifi ml-1"></i>';
+        } else if (statusText.includes("browser")) {
+          errorMsgDiv.innerHTML = 'Gagal Browser <i class="fas fa-window-close ml-1"></i>';
+        }
+      } else {
+        errorMsgDiv.classList.add("hidden");
+      }
+
+    } else if (status === "done") {
+      // Show success details if available (e.g. "Stok: 10...")
+      if (statusText.includes("Stok")) {
+        errorMsgDiv.innerHTML = statusText;
+        errorMsgDiv.classList.add("text-slate-500", "font-mono");
+      } else {
+        errorMsgDiv.classList.add("hidden");
+      }
+    } else {
+      errorMsgDiv.classList.add("hidden");
     }
   }
 
