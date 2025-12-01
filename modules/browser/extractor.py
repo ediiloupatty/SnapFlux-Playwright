@@ -41,30 +41,49 @@ def get_stock_value_direct(page: Page) -> Optional[str]:
     print("Mengambil data stok dari dashboard utama...")
 
     try:
-        # Tunggu halaman dashboard stabil
-        time.sleep(2.0)
+        # Tunggu halaman dashboard stabil (network idle)
+        try:
+            page.wait_for_load_state("networkidle", timeout=5000)
+        except:
+            pass
+            
+        time.sleep(3.0) # Tambahan sleep untuk memastikan rendering selesai
 
         import re
 
+        # Debug: Print page title and url
+        print(f"   URL: {page.url}")
+        print(f"   Title: {page.title()}")
+
         # Strategi 1: Cari heading "Stok" diikuti angka dan "Tabung" di dashboard
         try:
-            # Cari elemen yang tepat mengandung text "Stok"
-            stok_elements = page.locator("text=/^Stok$/i").all()
+            # Cari elemen yang mengandung text "Stok" (case insensitive)
+            stok_elements = page.locator("text=/Stok/i").all()
 
             for stok_elem in stok_elements:
                 try:
-                    # Ambil parent container
+                    # Cek text elemen itu sendiri
+                    elem_text = stok_elem.text_content()
+                    
+                    # Jika elemen hanya berisi "Stok", cek parent/sibling
+                    # Ambil parent container (coba naik 2 level)
                     parent = stok_elem.locator("..")
-                    text_content = parent.text_content()
+                    parent_text = parent.text_content()
+                    grandparent = parent.locator("..") 
+                    grandparent_text = grandparent.text_content()
+
+                    # Gabungkan text untuk pencarian
+                    search_text = f"{elem_text} {parent_text} {grandparent_text}"
 
                     # Cari pattern angka diikuti "Tabung"
+                    # Handle newlines dan spasi berlebih
                     match = re.search(
-                        r"Stok[^\d]*(\d+)\s*Tabung", text_content, re.IGNORECASE
+                        r"Stok.*?(\d+)\s*Tabung", search_text, re.IGNORECASE | re.DOTALL
                     )
                     if match:
                         stock_value = match.group(1)
                         print(
-                            f"✓ Stok berhasil diambil dari dashboard: {stock_value} tabung"
+                            f"✓ Stok berhasil diambil dari dashboard (Strategy 1): {stock_value} tabung"
                         )
                         return stock_value
                 except Exception:
@@ -77,40 +96,42 @@ def get_stock_value_direct(page: Page) -> Optional[str]:
             page_text = page.text_content("body")
 
             # Pattern untuk dashboard: "Stok\n89 Tabung" atau "Stok 89 Tabung"
+            # Ditambahkan variasi pattern
             patterns = [
                 r"Stok\s*\n?\s*(\d+)\s*Tabung",
                 r"Stok[:\s]*(\d+)\s*Tabung",
+                r"Sisa Kuota.*?(\d+)\s*Tabung", # Antisipasi istilah lain
+                r"Tersedia.*?(\d+)\s*Tabung",
             ]
 
             for pattern in patterns:
-                match = re.search(pattern, page_text, re.IGNORECASE)
+                match = re.search(pattern, page_text, re.IGNORECASE | re.DOTALL)
                 if match:
                     stock_value = match.group(1)
-                    print(f"✓ Stok berhasil diambil dari pattern: {stock_value} tabung")
+                    print(f"✓ Stok berhasil diambil dari pattern (Strategy 2): {stock_value} tabung")
                     return stock_value
         except Exception as e:
             logger.debug(f"Strategi 2 gagal: {e}")
 
         # Strategi 3: Cari semua elemen dengan "Tabung" dan filter yang relevan dengan stok
         try:
-            tabung_elements = page.locator("text=/\\d+\\s*Tabung/i").all()
+            tabung_elements = page.locator("text=/Tabung/i").all()
 
             for elem in tabung_elements:
                 try:
                     # Ambil konteks sekitar elemen
                     parent = elem.locator("..")
                     parent_text = parent.text_content()
+                    
+                    # Bersihkan text
+                    clean_text = " ".join(parent_text.split()).lower()
 
                     # Pastikan ini adalah data stok (bukan harga atau yang lain)
-                    if (
-                        "stok" in parent_text.lower()
-                        and "harga" not in parent_text.lower()
-                    ):
-                        elem_text = elem.text_content()
-                        match = re.search(r"(\d+)", elem_text)
+                    if "stok" in clean_text and "harga" not in clean_text:
+                        match = re.search(r"(\d+)", parent_text)
                         if match:
                             stock_value = match.group(1)
-                            print(f"✓ Stok berhasil diambil: {stock_value} tabung")
+                            print(f"✓ Stok berhasil diambil (Strategy 3): {stock_value} tabung")
                             return stock_value
                 except Exception:
                     continue
@@ -118,6 +139,15 @@ def get_stock_value_direct(page: Page) -> Optional[str]:
             logger.debug(f"Strategi 3 gagal: {e}")
 
         print("✗ Gagal mengambil data stok dari dashboard")
+        
+        # Debugging info: Print snippet body text untuk analisis
+        try:
+            body_text = page.text_content("body")
+            clean_body = " ".join(body_text.split())[:500] # Ambil 500 karakter pertama yang sudah dibersihkan
+            print(f"   [DEBUG] Page Content Snippet: {clean_body}...")
+        except:
+            pass
+            
         return None
 
     except Exception as e:

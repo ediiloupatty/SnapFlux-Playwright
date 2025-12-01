@@ -149,7 +149,7 @@ def save_to_excel_pivot_format(
         # Update data langsung ke posisi yang tepat dengan center alignment
         center_alignment = Alignment(horizontal="center", vertical="center")
 
-        # Set data dengan center alignment untuk STOK, INPUT, TIME, dan STATUS
+        # Set data dengan center alignment untuk STOK, INPUT, STATUS, dan TIME
         ws.cell(
             row=pangkalan_row, column=date_col_start, value=stok_int
         ).alignment = center_alignment
@@ -157,10 +157,10 @@ def save_to_excel_pivot_format(
             row=pangkalan_row, column=date_col_start + 1, value=inputan_int
         ).alignment = center_alignment
         ws.cell(
-            row=pangkalan_row, column=date_col_start + 2, value=timestamp
+            row=pangkalan_row, column=date_col_start + 2, value=status
         ).alignment = center_alignment
         ws.cell(
-            row=pangkalan_row, column=date_col_start + 3, value=status
+            row=pangkalan_row, column=date_col_start + 3, value=timestamp
         ).alignment = center_alignment
 
         # Apply conditional formatting untuk stok > 90 dan input = 0 (warna kuning)
@@ -247,10 +247,10 @@ def _find_or_create_date_column(ws, target_date):
             ws.cell(row=1, column=2, value="NAMA_PANGKALAN")
 
     ws.cell(row=1, column=new_col, value=display_date)
-    ws.cell(row=2, column=new_col, value="STOK (TABUNG)")
-    ws.cell(row=2, column=new_col + 1, value="INPUT (TABUNG)")
-    ws.cell(row=2, column=new_col + 2, value="TIME")
-    ws.cell(row=2, column=new_col + 3, value="STATUS")
+    ws.cell(row=2, column=new_col, value="STOK_TABUNG")
+    ws.cell(row=2, column=new_col + 1, value="INPUT_TABUNG")
+    ws.cell(row=2, column=new_col + 2, value="STATUS")
+    ws.cell(row=2, column=new_col + 3, value="TIME")
 
     print(f"🆕 Membuat kolom baru untuk tanggal {display_date} di kolom {new_col}")
     return new_col, True
@@ -264,7 +264,7 @@ def _find_or_create_pangkalan_row(ws, pangkalan_id, nama_pangkalan):
     # Cari apakah pangkalan sudah ada
     for row in range(3, ws.max_row + 1):
         if ws.cell(row=row, column=1).value == pangkalan_id:
-            print(f"Pangkalan {pangkalan_id} sudah ada di baris {row}")
+            # print(f"Pangkalan {pangkalan_id} sudah ada di baris {row}") # Reduce noise
             return row, False
 
     # Buat row baru jika belum ada
@@ -292,13 +292,13 @@ def _setup_headers(ws, display_date, pangkalan_id):
         ws.cell(row=1, column=2, value="NAMA_PANGKALAN")
         ws.cell(row=1, column=3, value=display_date)
 
-        # Row 2: (kosong) | (kosong) | STOK (TABUNG) | INPUT (TABUNG) | TIME | STATUS
+        # Row 2: (kosong) | (kosong) | STOK_TABUNG | INPUT_TABUNG | STATUS | TIME
         ws.cell(row=2, column=1, value="")
         ws.cell(row=2, column=2, value="")
-        ws.cell(row=2, column=3, value="STOK (TABUNG)")
-        ws.cell(row=2, column=4, value="INPUT (TABUNG)")
-        ws.cell(row=2, column=5, value="TIME")
-        ws.cell(row=2, column=6, value="STATUS")
+        ws.cell(row=2, column=3, value="STOK_TABUNG")
+        ws.cell(row=2, column=4, value="INPUT_TABUNG")
+        ws.cell(row=2, column=5, value="STATUS")
+        ws.cell(row=2, column=6, value="TIME")
         return date_col_start, data_start_row
     else:
         # Cek apakah tanggal ini sudah ada di header
@@ -312,16 +312,16 @@ def _setup_headers(ws, display_date, pangkalan_id):
         if date_col_start == 3 and ws.cell(row=1, column=3).value != display_date:
             date_col_start = ws.max_column + 1
             ws.cell(row=1, column=date_col_start, value=display_date)
-            ws.cell(row=2, column=date_col_start, value="STOK (TABUNG)")
-            ws.cell(row=2, column=date_col_start + 1, value="INPUT (TABUNG)")
-            ws.cell(row=2, column=date_col_start + 2, value="TIME")
-            ws.cell(row=2, column=date_col_start + 3, value="STATUS")
+            ws.cell(row=2, column=date_col_start, value="STOK_TABUNG")
+            ws.cell(row=2, column=date_col_start + 1, value="INPUT_TABUNG")
+            ws.cell(row=2, column=date_col_start + 2, value="STATUS")
+            ws.cell(row=2, column=date_col_start + 3, value="TIME")
         else:
-            # Pastikan sub-header tersedia untuk tanggal yang sudah ada
-            ws.cell(row=2, column=date_col_start, value="STOK (TABUNG)")
-            ws.cell(row=2, column=date_col_start + 1, value="INPUT (TABUNG)")
-            ws.cell(row=2, column=date_col_start + 2, value="TIME")
-            ws.cell(row=2, column=date_col_start + 3, value="STATUS")
+            # Pastikan sub-header tersedia untuk tanggal yang sudah ada (Overwrite headers to be sure)
+            ws.cell(row=2, column=date_col_start, value="STOK_TABUNG")
+            ws.cell(row=2, column=date_col_start + 1, value="INPUT_TABUNG")
+            ws.cell(row=2, column=date_col_start + 2, value="STATUS")
+            ws.cell(row=2, column=date_col_start + 3, value="TIME")
 
         # Cari row yang tepat untuk data ini
         for row in range(3, ws.max_row + 1):
@@ -356,10 +356,11 @@ def _fill_data(
 
     for row in range(3, ws.max_row + 1):
         if ws.cell(row=row, column=1).value == pangkalan_id:
-            # Update existing row
-            ws.cell(row=row, column=date_col_start, value=stok_int)
-            ws.cell(row=row, column=date_col_start + 1, value=inputan_int)
-            ws.cell(row=row, column=date_col_start + 2, value=timestamp)
+            # Update existing row (TIMPA DATA HARI YANG SAMA)
+            ws.cell(row=row, column=date_col_start, value=stok_int)        # STOK
+            ws.cell(row=row, column=date_col_start + 1, value=inputan_int) # INPUT
+            ws.cell(row=row, column=date_col_start + 2, value=status)      # STATUS (New Position)
+            ws.cell(row=row, column=date_col_start + 3, value=timestamp)   # TIME (New Position)
             pangkalan_exists = True
             break
 
@@ -370,7 +371,8 @@ def _fill_data(
         ws.cell(row=new_row, column=2, value=nama_pangkalan)
         ws.cell(row=new_row, column=date_col_start, value=stok_int)
         ws.cell(row=new_row, column=date_col_start + 1, value=inputan_int)
-        ws.cell(row=new_row, column=date_col_start + 2, value=timestamp)
+        ws.cell(row=new_row, column=date_col_start + 2, value=status)      # STATUS
+        ws.cell(row=new_row, column=date_col_start + 3, value=timestamp)   # TIME
 
 
 def _apply_conditional_formatting(
@@ -459,7 +461,7 @@ def _merge_and_color_date_headers(ws, display_date, center_alignment):
             ]
 
             if is_date_header or (is_not_basic_header and col > 2):
-                # Cek apakah ini kolom pertama dari grup (harus diikuti STOK, INPUT, TIME, STATUS di row 2)
+                # Cek apakah ini kolom pertama dari grup (harus diikuti STOK, INPUT, STATUS, TIME di row 2)
                 if col + 3 <= ws.max_column:
                     row2_col1 = ws.cell(row=2, column=col).value
                     row2_col2 = ws.cell(row=2, column=col + 1).value
@@ -467,10 +469,8 @@ def _merge_and_color_date_headers(ws, display_date, center_alignment):
                     row2_col4 = ws.cell(row=2, column=col + 3).value
 
                     if (
-                        row2_col1 == "STOK (TABUNG)"
-                        and row2_col2 == "INPUT (TABUNG)"
-                        and row2_col3 == "TIME"
-                        and row2_col4 == "STATUS"
+                        row2_col1 == "STOK_TABUNG"
+                        and row2_col2 == "INPUT_TABUNG"
                     ):
                         date_start_cols.append(col)
 
@@ -478,7 +478,7 @@ def _merge_and_color_date_headers(ws, display_date, center_alignment):
     for start_col in date_start_cols:
         end_col = min(
             start_col + 3, ws.max_column
-        )  # 4 kolom: STOK, INPUT, TIME, STATUS
+        )  # 4 kolom: STOK, INPUT, STATUS, TIME
         if end_col > start_col:
             try:
                 # Merge cell di row 1 untuk header tanggal
@@ -547,33 +547,29 @@ def _apply_all_conditional_formatting(ws):
 
     # Cari semua kolom yang berisi data stok dan input
     for col in range(1, max_col + 1):
-        # Cek apakah ini kolom STOK (TABUNG) atau INPUT (TABUNG)
+        # Cek apakah ini kolom STOK_TABUNG
         row2_header = ws.cell(row=2, column=col).value
-        if row2_header == "STOK (TABUNG)":
+        if row2_header == "STOK_TABUNG":
             # Ini kolom stok, cari kolom input yang bersebelahan (biasanya +1)
             input_col = col + 1
-            time_col = col + 2  # Kolom TIME
-            status_col = col + 3  # Kolom STATUS
+            status_col = col + 2  # Kolom STATUS (New Position)
+            time_col = col + 3    # Kolom TIME (New Position)
 
             # Loop melalui semua data rows (mulai dari row 3)
             for row in range(3, max_row + 1):
                 try:
-                    # Apply center alignment untuk semua data (STOK, INPUT, TIME, STATUS)
+                    # Apply center alignment untuk semua data (STOK, INPUT, STATUS, TIME)
                     if col <= max_col:
                         ws.cell(
                             row=row, column=col
                         ).alignment = center_alignment  # STOK
                     if (
                         input_col <= max_col
-                        and ws.cell(row=2, column=input_col).value == "INPUT (TABUNG)"
+                        and ws.cell(row=2, column=input_col).value == "INPUT_TABUNG"
                     ):
                         ws.cell(
                             row=row, column=input_col
                         ).alignment = center_alignment  # INPUT
-                    if time_col <= max_col:
-                        ws.cell(
-                            row=row, column=time_col
-                        ).alignment = center_alignment  # TIME
                     if (
                         status_col <= max_col
                         and ws.cell(row=2, column=status_col).value == "STATUS"
@@ -581,11 +577,15 @@ def _apply_all_conditional_formatting(ws):
                         ws.cell(
                             row=row, column=status_col
                         ).alignment = center_alignment  # STATUS
+                    if time_col <= max_col:
+                        ws.cell(
+                            row=row, column=time_col
+                        ).alignment = center_alignment  # TIME
 
                     # Conditional formatting untuk STOK dan INPUT
                     if (
                         input_col <= max_col
-                        and ws.cell(row=2, column=input_col).value == "INPUT (TABUNG)"
+                        and ws.cell(row=2, column=input_col).value == "INPUT_TABUNG"
                     ):
                         stok_value = ws.cell(row=row, column=col).value
                         input_value = ws.cell(row=row, column=input_col).value

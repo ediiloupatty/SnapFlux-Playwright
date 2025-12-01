@@ -43,7 +43,7 @@ except ImportError:
 
 
 # Konfigurasi path Chrome binary (fallback)
-CHROME_BINARY = r"D:\edi\Programing\Snapflux v2\chrome\Chromium\bin\chrome.exe"
+CHROME_BINARY = r"D:\edi\Programing\PlayWRight\chrome\Chromium\bin\chrome.exe"
 
 
 # Docker environment detection
@@ -115,6 +115,20 @@ class PlaywrightBrowserManager:
         self.browser: Browser = None
         self.context: BrowserContext = None
         self.page: Page = None
+
+    def _handle_route(self, route):
+        """
+        Handler untuk memblokir resource berat agar loading cepat
+        """
+        try:
+            # Block images, fonts, and media
+            if route.request.resource_type in ["image", "media", "font"]:
+                route.abort()
+            else:
+                route.continue_()
+        except Exception:
+            # Jika terjadi error (misal page sudah closed), abaikan
+            pass
 
     def setup_browser(self, headless=None, username=None, use_session=False):
         """
@@ -241,6 +255,10 @@ class PlaywrightBrowserManager:
 
             # Buat page baru
             self.page = self.context.new_page()
+
+            # OPTIMIZATION: Block heavy resources (Images, Fonts, Media)
+            # DISABLED TEMPORARILY: Menyebabkan gagal login (terdeteksi bot/missing assets)
+            # self.page.route("**/*", lambda route: self._handle_route(route))
 
             # Inject script untuk hide automation
             self.page.add_init_script("""

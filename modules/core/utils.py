@@ -89,11 +89,11 @@ def load_accounts_from_excel(filename):
         filename (str): Path ke file Excel
 
     Returns:
-        list: List tuple (nama, username, pin)
+        list: List tuple (nama, username, pin, pangkalan_id)
     """
     try:
         df = pd.read_excel(
-            filename, dtype={"Nama": str, "Username": str, "Password": str}
+            filename, dtype={"Nama": str, "Username": str, "Password": str, "Pangkalan_id": str}
         )
 
         valid_accounts = []
@@ -102,6 +102,14 @@ def load_accounts_from_excel(filename):
             nama = str(row["Nama"]).strip()
             username = str(row["Username"]).strip()
             pin = str(row["Password"]).strip()
+            
+            # Baca Pangkalan_id (bisa kosong untuk backward compatibility)
+            pangkalan_id = str(row.get("Pangkalan_id", "")).strip()
+            
+            # Jika Pangkalan_id kosong, gunakan username sebagai fallback
+            if not pangkalan_id or pangkalan_id == "nan":
+                pangkalan_id = username
+                logger.warning(f"Pangkalan_id tidak ditemukan untuk {nama}, menggunakan username sebagai ID")
 
             # Validasi username
             if not (is_valid_email(username) or is_valid_phone(username)):
@@ -113,7 +121,7 @@ def load_accounts_from_excel(filename):
                 logger.warning(f"Invalid PIN for {username}")
                 continue
 
-            valid_accounts.append((nama, username, pin))
+            valid_accounts.append((nama, username, pin, pangkalan_id))
 
         if not valid_accounts:
             raise ValueError("No valid accounts found in Excel file!")

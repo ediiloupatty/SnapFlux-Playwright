@@ -18,19 +18,21 @@ except ImportError:
     RESULTS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "results")
 
 
+import csv
+
 def export_results_to_excel(
     results: List[Dict], export_date: datetime, custom_filepath: str = None
 ) -> str:
     """
-    Export hasil automation ke Excel dengan format multi-tanggal
-
+    Export hasil automation ke CSV (Format Opsi 1)
+    
     Args:
         results (List[Dict]): List hasil automation
         export_date (datetime): Tanggal export
         custom_filepath (str, optional): Path custom untuk menyimpan file. Defaults to None.
 
     Returns:
-        str: Path file Excel yang di-generate
+        str: Path file CSV yang di-generate
     """
     try:
         if custom_filepath:
@@ -44,136 +46,105 @@ def export_results_to_excel(
 
             # Nama file dengan timestamp
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"SnapFlux_Export_{timestamp}.xlsx"
+            filename = f"SnapFlux_Daily_{timestamp}.xlsx"
             filepath = os.path.join(results_dir, filename)
 
-        # Buat workbook baru
+        # Waktu cek saat ini (Format 12 Jam dengan AM/PM)
+        waktu_cek = datetime.now().strftime("%I:%M %p")
+        # Format Tanggal Standar ISO (YYYY-MM-DD)
+        tanggal_str = export_date.strftime("%Y-%m-%d")
+
+        # Create Workbook
         wb = openpyxl.Workbook()
         ws = wb.active
-        ws.title = "Export Data"
+        ws.title = "Daily Export"
 
-        # Format tanggal untuk header
-        date_str = export_date.strftime("%Y-%m-%d")
+        # Define headers
+        headers = [
+            "TANGGAL",
+            "WAKTU_CEK",
+            "PANGKALAN_ID",
+            "NAMA_PANGKALAN",
+            "STOK_TABUNG",
+            "INPUT_TABUNG",
+            "STATUS"
+        ]
+        
+        # Write Headers
+        ws.append(headers)
+        
+        # Style Headers (Bold)
+        for cell in ws[1]:
+            cell.font = Font(bold=True)
 
-        # HEADER ROW 1: PANGKALAN_ID, NAMA_PANGKALAN, dan tanggal-tanggal
-        ws.cell(row=1, column=1, value="PANGKALAN_ID")
-        ws.cell(row=1, column=2, value="NAMA_PANGKALAN")
-        ws.cell(row=1, column=3, value=date_str)
-
-        # HEADER ROW 2: Sub-headers untuk setiap tanggal
-        ws.cell(row=2, column=1, value="")  # Kosong untuk PANGKALAN_ID
-        ws.cell(row=2, column=2, value="")  # Kosong untuk NAMA_PANGKALAN
-        ws.cell(row=2, column=3, value="STOK (TABUNG)")
-        ws.cell(row=2, column=4, value="INPUT (TABUNG)")
-        ws.cell(row=2, column=5, value="STATUS")
-
-        # Merge cells untuk header tanggal
-        ws.merge_cells(start_row=1, start_column=3, end_row=1, end_column=5)
-        ws.merge_cells(start_row=1, start_column=1, end_row=2, end_column=1)
-        ws.merge_cells(start_row=1, start_column=2, end_row=2, end_column=2)
-
-        # Style untuk header
-        header_fill = PatternFill(
-            start_color="4472C4", end_color="4472C4", fill_type="solid"
-        )
-        header_font = Font(bold=True, color="FFFFFF", size=11)
-        header_alignment = Alignment(horizontal="center", vertical="center")
-        border = Border(
-            left=Side(style="thin"),
-            right=Side(style="thin"),
-            top=Side(style="thin"),
-            bottom=Side(style="thin"),
-        )
-
-        # Apply style ke header
-        for col in range(1, 6):
-            cell1 = ws.cell(row=1, column=col)
-            cell2 = ws.cell(row=2, column=col)
-            cell1.fill = header_fill
-            cell1.font = header_font
-            cell1.alignment = header_alignment
-            cell1.border = border
-            cell2.fill = header_fill
-            cell2.font = header_font
-            cell2.alignment = header_alignment
-            cell2.border = border
-
-        # DATA ROWS
-        current_row = 3
         for result in results:
             # Extract data
-            pangkalan_id = result.get("pangkalan_id", "")
+            pangkalan_id = str(result.get("pangkalan_id", ""))
             nama = result.get("nama", "")
-            stok = result.get("stok", "0 Tabung").replace(" Tabung", "")
-            tabung_terjual = result.get("tabung_terjual", "0 Tabung").replace(
-                " Tabung", ""
-            )
             status = result.get("status", "Tidak Ada Penjualan")
-
-            # Convert stok dan tabung_terjual ke int
+            
+            # Parse Stok & Input
+            stok_str = result.get("stok", "0").replace(" Tabung", "")
+            input_str = result.get("tabung_terjual", "0").replace(" Tabung", "")
+            
             try:
-                stok_int = int(stok)
+                stok_int = int(stok_str)
             except:
                 stok_int = 0
-
+                
             try:
-                tabung_int = int(tabung_terjual)
+                input_int = int(input_str)
             except:
-                tabung_int = 0
+                input_int = 0
 
-            # Write data
-            ws.cell(row=current_row, column=1, value=pangkalan_id)
-            ws.cell(row=current_row, column=2, value=nama)
-            ws.cell(row=current_row, column=3, value=stok_int)
-            ws.cell(row=current_row, column=4, value=tabung_int)
-            ws.cell(row=current_row, column=5, value=status)
-
-            # Style untuk data rows
-            data_alignment = Alignment(horizontal="left", vertical="center")
-            for col in range(1, 6):
-                cell = ws.cell(row=current_row, column=col)
-                cell.border = border
-                if col in [3, 4]:  # Number columns
-                    cell.alignment = Alignment(horizontal="center", vertical="center")
+            # Write row
+            row_data = [
+                tanggal_str,
+                waktu_cek,
+                pangkalan_id,
+                nama,
+                stok_int,
+                input_int,
+                status
+            ]
+            ws.append(row_data)
+            
+            # Apply Alignment (Center for all, except Name & Status = Left)
+            center_align = Alignment(horizontal='center', vertical='center')
+            left_align = Alignment(horizontal='left', vertical='center')
+            
+            for cell in ws[ws.max_row]:
+                # Kolom 4 = NAMA_PANGKALAN, Kolom 7 = STATUS
+                if cell.col_idx == 4 or cell.col_idx == 7:
+                    cell.alignment = left_align
                 else:
-                    cell.alignment = data_alignment
-
-                # Conditional formatting untuk status
-                if col == 5:
-                    if status == "Ada Penjualan":
-                        cell.fill = PatternFill(
-                            start_color="C6EFCE",
-                            end_color="C6EFCE",
-                            fill_type="solid",
-                        )
-                        cell.font = Font(color="006100")
-                    else:
-                        cell.fill = PatternFill(
-                            start_color="FFC7CE",
-                            end_color="FFC7CE",
-                            fill_type="solid",
-                        )
-                        cell.font = Font(color="9C0006")
-
-            current_row += 1
+                    cell.alignment = center_align
+            
+            # Force PANGKALAN_ID (Column 3) to be Text to prevent Scientific Notation
+            current_row = ws.max_row
+            cell_id = ws.cell(row=current_row, column=3)
+            cell_id.number_format = '@'  # Text Format
+            cell_id.value = pangkalan_id # Re-assign as value to ensure format sticks
 
         # Auto-adjust column widths
-        ws.column_dimensions["A"].width = 30  # PANGKALAN_ID
-        ws.column_dimensions["B"].width = 35  # NAMA_PANGKALAN
-        ws.column_dimensions["C"].width = 15  # STOK
-        ws.column_dimensions["D"].width = 15  # INPUT
-        ws.column_dimensions["E"].width = 20  # STATUS
-
-        # Freeze panes (freeze header rows)
-        ws.freeze_panes = "A3"
+        for col in ws.columns:
+            max_length = 0
+            column = col[0].column_letter # Get the column name
+            for cell in col:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = (max_length + 2)
+            ws.column_dimensions[column].width = adjusted_width
 
         # Save workbook
         wb.save(filepath)
-
         return filepath
 
     except Exception as e:
-        print(f"✗ Error exporting to Excel: {str(e)}")
+        print(f"✗ Error exporting to CSV: {str(e)}")
         raise
 
 

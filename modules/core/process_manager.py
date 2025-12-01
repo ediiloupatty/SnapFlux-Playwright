@@ -120,12 +120,20 @@ class ProcessManager:
                 nama = account["nama"]
                 username = account["username"]
                 pin = account["pin"]
+                pangkalan_id = account.get("pangkalan_id", username)  # Get Pangkalan_id or fallback to username
             else:
-                # Assuming tuple (nama, username, pin) from CLI load_accounts
+                # Assuming tuple format (nama, username, pin, pangkalan_id) or old format (nama, username, pin)
                 account_id = idx
-                nama = account[0]
-                username = account[1]
-                pin = account[2]
+                if len(account) >= 4:
+                    nama = account[0]
+                    username = account[1]
+                    pin = account[2]
+                    pangkalan_id = account[3]
+                else:
+                    nama = account[0]
+                    username = account[1]
+                    pin = account[2]
+                    pangkalan_id = username  # Fallback to username for old format
                 
             # Start processing account
             self.telemetry.record_account_start(username)
@@ -139,7 +147,7 @@ class ProcessManager:
             try:
                 # 1. Check Internet
                 if not check_before_step("setup browser", username, max_wait=300, log_callback=lambda m, l: self._log(m, l)):
-                    self._handle_failure(account_id, username, "connection_timeout", f"Timeout koneksi internet untuk {nama}")
+                    self._handle_failure(account_id, username, nama, "connection_timeout", f"Timeout koneksi internet untuk {nama}")
                     continue
                     
                 # 2. Setup Browser
@@ -155,12 +163,12 @@ class ProcessManager:
                     time.sleep(2.0)
                     
                 if not page:
-                    self._handle_failure(account_id, username, "browser_setup_failed", f"Gagal setup browser untuk {nama}")
+                    self._handle_failure(account_id, username, nama, "browser_setup_failed", f"Gagal setup browser untuk {nama}")
                     continue
                     
                 # 3. Login
                 if not check_before_step("login", username, max_wait=300, log_callback=lambda m, l: self._log(m, l)):
-                    self._handle_failure(account_id, username, "connection_timeout_login", "Timeout koneksi sebelum login")
+                    self._handle_failure(account_id, username, nama, "connection_timeout_login", f"Timeout koneksi sebelum login untuk {nama}")
                     browser_manager.close()
                     continue
                     
@@ -172,7 +180,7 @@ class ProcessManager:
                 self.telemetry.end_operation("login", username)
                 
                 if not success:
-                    self._handle_failure(account_id, username, "login_failed", f"Login gagal untuk {nama}")
+                    self._handle_failure(account_id, username, nama, "login_failed", f"Login gagal untuk {nama}")
                     browser_manager.close()
                     continue
                     
@@ -180,7 +188,7 @@ class ProcessManager:
                 
                 # 4. Get Data
                 if not check_before_step("get data", username, max_wait=300, log_callback=lambda m, l: self._log(m, l)):
-                    self._handle_failure(account_id, username, "connection_timeout_data", "Timeout koneksi sebelum ambil data")
+                    self._handle_failure(account_id, username, nama, "connection_timeout_data", f"Timeout koneksi sebelum ambil data untuk {nama}")
                     browser_manager.close()
                     continue
                     
@@ -229,7 +237,7 @@ class ProcessManager:
                 status = "Ada Penjualan" if terjual_int > 0 else "Tidak Ada Penjualan"
                 
                 result = {
-                    "pangkalan_id": username,
+                    "pangkalan_id": pangkalan_id,  # Use Pangkalan_id instead of username
                     "nama": nama,
                     "username": username,
                     "stok": stok_formatted,
@@ -244,7 +252,7 @@ class ProcessManager:
                 tanggal_check = save_date.strftime("%Y-%m-%d")
                 
                 save_to_excel_pivot_format(
-                    pangkalan_id=username,
+                    pangkalan_id=pangkalan_id,  # Use Pangkalan_id instead of username
                     nama_pangkalan=nama,
                     tanggal_check=tanggal_check,
                     stok_awal=stok_formatted,
@@ -265,12 +273,12 @@ class ProcessManager:
                 if self.callbacks.get("on_result"):
                     self.callbacks["on_result"](result)
                 
-                self._update_status(account_id, "done", 100)
+                self._update_status(account_id, f"done|Stok: {stok_formatted}, Input: {tabung_formatted}", 100)
                 self._log(f"Selesai: {nama} - Stok: {stok_formatted}, Terjual: {tabung_formatted}", "success")
                 self._update_progress(idx + 1, total_accounts, progress_percent)
                 
             except Exception as e:
-                self._handle_failure(account_id, username, "exception", f"Error untuk {nama}: {str(e)}")
+                self._handle_failure(account_id, username, nama, "exception", f"Error untuk {nama}: {str(e)}")
                 self.logger.error(f"Exception processing {nama}: {str(e)}", exc_info=True)
                 
             finally:
@@ -287,11 +295,11 @@ class ProcessManager:
         self._log(f"Proses selesai! Total: {len(self.results)} akun berhasil diproses", "success")
         return self.results
 
-    def _handle_failure(self, account_id, username, error_type, message):
+    def _handle_failure(self, account_id, username, nama, error_type, message):
         """Helper untuk handle failure case"""
         self._update_status(account_id, "error", 0)
         self._log(message, "error")
-        self.telemetry.record_account_failure(username, error_type, message)
+        self.telemetry.record_account_failure(username, error_type, message, nama)
 
     def _safe_int(self, val):
         """Helper konversi int aman"""

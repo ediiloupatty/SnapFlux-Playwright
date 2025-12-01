@@ -128,7 +128,38 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Start header time update
   updateHeaderTime();
   setInterval(updateHeaderTime, 1000);
+
+  // Initialize sidebar state
+  initSidebar();
 });
+
+// ============================================
+// SIDEBAR LOGIC
+// ============================================
+
+function toggleSidebar() {
+  document.body.classList.toggle("sidebar-collapsed");
+  const isCollapsed = document.body.classList.contains("sidebar-collapsed");
+  localStorage.setItem("sidebarCollapsed", isCollapsed);
+
+  // Update toggle button icon
+  const toggleBtn = document.querySelector(".sidebar-toggle-btn i");
+  if (toggleBtn) {
+    toggleBtn.className = isCollapsed ? "fas fa-chevron-right" : "fas fa-chevron-left";
+  }
+}
+
+function initSidebar() {
+  const isCollapsed = localStorage.getItem("sidebarCollapsed") === "true";
+  if (isCollapsed) {
+    document.body.classList.add("sidebar-collapsed");
+    // Update toggle button icon
+    const toggleBtn = document.querySelector(".sidebar-toggle-btn i");
+    if (toggleBtn) {
+      toggleBtn.className = "fas fa-chevron-right";
+    }
+  }
+}
 
 // Initialize default values
 function initializeDefaults() {
@@ -746,27 +777,37 @@ function update_account_status(accountId, status, progress) {
 
   // Define status text for processing view
   let statusText;
-  switch (status) {
-    case "processing":
-      statusText = "Sedang login dan mengambil data...";
-      break;
-    case "login":
-      statusText = "Melakukan login ke akun...";
-      break;
-    case "fetching":
-      statusText = "Mengambil data transaksi...";
-      break;
-    case "saving":
-      statusText = "Menyimpan data ke Excel...";
-      break;
-    case "done":
-      statusText = "Akun berhasil diproses!";
-      break;
-    case "error":
-      statusText = "Terjadi kesalahan saat memproses";
-      break;
-    default:
-      statusText = "Menunggu giliran proses...";
+
+  // Handle custom messages
+  if (status.startsWith("done|")) {
+    statusText = status.split("|")[1];
+    status = "done"; // Normalize status for styling
+  } else if (status.startsWith("error|")) {
+    statusText = status.split("|")[1];
+    status = "error"; // Normalize status for styling
+  } else {
+    switch (status) {
+      case "processing":
+        statusText = "Sedang login dan mengambil data...";
+        break;
+      case "login":
+        statusText = "Melakukan login ke akun...";
+        break;
+      case "fetching":
+        statusText = "Mengambil data transaksi...";
+        break;
+      case "saving":
+        statusText = "Menyimpan data ke Excel...";
+        break;
+      case "done":
+        statusText = "Akun berhasil diproses!";
+        break;
+      case "error":
+        statusText = "Terjadi kesalahan saat memproses";
+        break;
+      default:
+        statusText = "Menunggu giliran proses...";
+    }
   }
 
   // Update processing view
@@ -1054,7 +1095,7 @@ function showExportCard(successCount) {
 
 async function downloadExcel() {
   try {
-    logMessage("Memulai export ke Excel...", "info");
+    logMessage("Memulai export ke CSV...", "info");
     const result = await eel.export_to_excel()();
     if (result.success) {
       logMessage(`${result.message}`, "success");
@@ -1068,8 +1109,8 @@ async function downloadExcel() {
       alert(`Export gagal: ${result.message}`);
     }
   } catch (error) {
-    console.error("Error downloading Excel:", error);
-    logMessage("Gagal export ke Excel", "error");
+    console.error("Error downloading CSV:", error);
+    logMessage("Gagal export ke CSV", "error");
     alert("Error: " + error);
   }
 }
@@ -1104,7 +1145,7 @@ async function saveResultsAs() {
         }
         const byteArray = new Uint8Array(byteNumbers);
         const blob = new Blob([byteArray], {
-          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          type: "text/csv",
         });
 
         if ("showSaveFilePicker" in window) {
@@ -1113,10 +1154,9 @@ async function saveResultsAs() {
               suggestedName: result.filename,
               types: [
                 {
-                  description: "Excel Files",
+                  description: "CSV Files",
                   accept: {
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-                      [".xlsx"],
+                    "text/csv": [".csv"],
                   },
                 },
               ],
@@ -1312,7 +1352,7 @@ async function updateDashboardMetrics() {
 
     // Update error tracking
     if (metrics.errors && Object.keys(metrics.errors).length > 0) {
-      updateErrorTracking(metrics.errors);
+      updateErrorTracking(metrics.errors, metrics.failed_accounts_detail || []);
     }
 
     // Update Business Metrics (NEW)
@@ -1331,7 +1371,7 @@ async function updateDashboardMetrics() {
   }
 }
 
-function updateErrorTracking(errors) {
+function updateErrorTracking(errors, failedAccountsDetail) {
   const errorTracking = document.getElementById("error-tracking");
   const errorList = document.getElementById("error-list");
 
@@ -1342,17 +1382,39 @@ function updateErrorTracking(errors) {
   if (totalErrors > 0) {
     errorTracking.style.display = "block";
 
-    // Build error list
+    // Group failed accounts by error type
+    const accountsByErrorType = {};
+    failedAccountsDetail.forEach((acc) => {
+      const errorType = acc.error_type || "unknown";
+      if (!accountsByErrorType[errorType]) {
+        accountsByErrorType[errorType] = [];
+      }
+      accountsByErrorType[errorType].push(acc.nama);
+    });
+
+    // Build error list with account names
     const errorItems = Object.entries(errors)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5) // Top 5 errors
       .map(
-        ([type, count]) => `
-                <div style="display: flex; justify-content: space-between; padding: 0.5rem; background: #f8fafc; border-radius: 4px;">
-                    <span style="color: var(--text-main); font-size: 0.875rem;">${type.replace(/_/g, " ")}</span>
-                    <span style="font-weight: 700; color: var(--error);">${count}</span>
+        ([type, count]) => {
+          const accountNames = accountsByErrorType[type] || [];
+          const accountNamesHtml = accountNames.length > 0
+            ? `<div style="margin-top: 0.5rem; padding-left: 1rem; font-size: 0.8rem; color: var(--text-muted);">
+                 ${accountNames.map(name => `<div style="padding: 0.25rem 0;">• ${name}</div>`).join("")}
+               </div>`
+            : "";
+
+          return `
+                <div style="padding: 0.75rem; background: #f8fafc; border-radius: 6px; margin-bottom: 0.5rem; border-left: 3px solid var(--error);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: var(--text-main); font-size: 0.875rem; font-weight: 500;">${type.replace(/_/g, " ")}</span>
+                        <span style="font-weight: 700; color: var(--error); font-size: 0.95rem;">${count}</span>
+                    </div>
+                    ${accountNamesHtml}
                 </div>
-            `,
+            `;
+        },
       )
       .join("");
 

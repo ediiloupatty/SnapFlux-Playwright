@@ -295,7 +295,19 @@ def click_date_elements_direct(page: Page, target_date: datetime) -> bool:
     2. Klik Header "Bulan Tahun" (misal: "November 2025") -> Membuka pilihan bulan
     3. Klik Bulan Singkat (misal: "Nov") -> Membuka pilihan tanggal
     4. Klik Tanggal (misal: "20") -> Klik 2x
+    
+    NOTE: Fungsi ini akan dilewati jika tanggal yang dipilih adalah HARI INI,
+          karena website default sudah menampilkan data hari ini.
     """
+    # Check if target_date is today
+    today = datetime.now().date()
+    target_date_only = target_date.date()
+    
+    if target_date_only == today:
+        print(f"📅 Tanggal yang dipilih adalah HARI INI ({target_date.strftime('%d/%m/%Y')})")
+        print("   ✓ Melewati pemilihan tanggal (website default sudah menampilkan data hari ini)")
+        return True
+    
     print(f"📅 Memilih tanggal: {target_date.strftime('%d/%m/%Y')} (4 Steps)...")
 
     try:
@@ -447,7 +459,19 @@ def click_date_elements_rekap_penjualan(page: Page, target_date: datetime) -> bo
     ============================================
     
     Implementasi logika 4 langkah untuk halaman Rekap Penjualan
+    
+    NOTE: Fungsi ini akan dilewati jika tanggal yang dipilih adalah HARI INI,
+          karena website default sudah menampilkan data hari ini.
     """
+    # Check if target_date is today
+    today = datetime.now().date()
+    target_date_only = target_date.date()
+    
+    if target_date_only == today:
+        print(f"📅 Tanggal yang dipilih adalah HARI INI ({target_date.strftime('%d/%m/%Y')})")
+        print("   ✓ Melewati pemilihan tanggal (website default sudah menampilkan data hari ini)")
+        return True
+    
     print(f"📅 Memilih tanggal Rekap: {target_date.strftime('%d/%m/%Y')} (4 Steps)...")
 
     try:

@@ -22,9 +22,13 @@ from threading import Event, Thread
 from tkinter import filedialog
 
 import eel
+import eel.browsers
 
 # Tambahkan direktori root ke path Python
-sys.path.append(os.path.dirname(__file__))
+if getattr(sys, "frozen", False):
+    sys.path.append(sys._MEIPASS)
+else:
+    sys.path.append(os.path.dirname(__file__))
 
 # Import modul automation
 from modules.browser.setup import PlaywrightBrowserManager
@@ -56,16 +60,33 @@ automation_export_date = None
 # Initialize telemetry manager
 telemetry_manager = get_telemetry_manager()
 
-# Get correct path for exe and script
+# Get correct path for resources and data
+# Get correct path for resources and data
 if getattr(sys, "frozen", False):
     # Running as compiled exe
-    application_path = os.path.dirname(sys.executable)
+    if hasattr(sys, "_MEIPASS"):
+        # Mode --onefile (Files are in temp directory)
+        BASE_DIR = sys._MEIPASS
+    else:
+        # Mode --onedir (Files are next to the executable)
+        BASE_DIR = os.path.dirname(sys.executable)
+        
+    DATA_DIR = os.path.dirname(sys.executable)
+    
+    # Set Chrome Binary Path for bundled browser
+    bundled_chrome = os.path.join(BASE_DIR, "chrome", "Chromium", "bin", "chrome.exe")
+    if os.path.exists(bundled_chrome):
+        os.environ["CHROME_BINARY_PATH"] = bundled_chrome
+        # Force Eel to use our bundled Chrome
+        import eel.browsers
+        eel.browsers.set_path('chrome', bundled_chrome)
 else:
     # Running as script
-    application_path = os.path.dirname(os.path.abspath(__file__))
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    DATA_DIR = BASE_DIR
 
 # Initialize Eel dengan folder web
-web_folder = os.path.join(application_path, "web")
+web_folder = os.path.join(BASE_DIR, "web")
 eel.init(web_folder)
 
 
@@ -95,13 +116,21 @@ def load_accounts_from_data(base64_data, filename):
 
         # Format accounts untuk frontend
         formatted_accounts = []
-        for idx, (nama, username, pin) in enumerate(accounts, 1):
+        for idx, account_data in enumerate(accounts, 1):
+            # Handle both old format (3 items) and new format (4 items)
+            if len(account_data) == 4:
+                nama, username, pin, pangkalan_id = account_data
+            else:
+                nama, username, pin = account_data
+                pangkalan_id = username  # Fallback to username
+            
             formatted_accounts.append(
                 {
                     "id": idx,
                     "nama": nama,
                     "username": username,
                     "pin": pin,
+                    "pangkalan_id": pangkalan_id,
                     "status": "waiting",
                     "progress": 0,
                 }
@@ -143,7 +172,7 @@ def load_accounts_from_file(file_path):
     """
     try:
         # Cari file di folder akun
-        akun_dir = os.path.join(os.path.dirname(__file__), "akun")
+        akun_dir = os.path.join(DATA_DIR, "akun")
         full_path = os.path.join(akun_dir, file_path)
 
         if not os.path.exists(full_path):
@@ -166,13 +195,21 @@ def load_accounts_from_file(file_path):
 
         # Format accounts untuk frontend
         formatted_accounts = []
-        for idx, (nama, username, pin) in enumerate(accounts, 1):
+        for idx, account_data in enumerate(accounts, 1):
+            # Handle both old format (3 items) and new format (4 items)
+            if len(account_data) == 4:
+                nama, username, pin, pangkalan_id = account_data
+            else:
+                nama, username, pin = account_data
+                pangkalan_id = username  # Fallback to username
+            
             formatted_accounts.append(
                 {
                     "id": idx,
                     "nama": nama,
                     "username": username,
                     "pin": pin,
+                    "pangkalan_id": pangkalan_id,
                     "status": "waiting",
                     "progress": 0,
                 }
@@ -208,7 +245,7 @@ def get_available_excel_files():
         }
     """
     try:
-        akun_dir = os.path.join(os.path.dirname(__file__), "akun")
+        akun_dir = os.path.join(DATA_DIR, "akun")
 
         if not os.path.exists(akun_dir):
             return {
@@ -409,10 +446,10 @@ def save_results_as():
 
         # Generate default filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"SnapFlux_Export_{timestamp}.xlsx"
+        filename = f"SnapFlux_Daily_{timestamp}.xlsx"
 
         # Use a temp directory
-        temp_dir = os.path.join(os.path.dirname(__file__), "temp_export")
+        temp_dir = os.path.join(DATA_DIR, "temp_export")
         os.makedirs(temp_dir, exist_ok=True)
         temp_filepath = os.path.join(temp_dir, filename)
 
@@ -458,7 +495,7 @@ def open_export_folder():
         dict: {"success": bool, "message": str}
     """
     try:
-        results_dir = os.path.join(os.path.dirname(__file__), "results")
+        results_dir = os.path.join(DATA_DIR, "results")
 
         if not os.path.exists(results_dir):
             os.makedirs(results_dir, exist_ok=True)
@@ -607,9 +644,9 @@ def main():
         setup_logging()
 
         # Check folder struktur
-        web_dir = os.path.join(os.path.dirname(__file__), "web")
+        web_dir = os.path.join(BASE_DIR, "web")
         if not os.path.exists(web_dir):
-            print("✗ Folder 'web' tidak ditemukan!")
+            print("[!] Folder 'web' tidak ditemukan!")
             print(
                 "   Pastikan folder web/ dengan file HTML/CSS/JS ada di direktori yang sama"
             )
@@ -626,33 +663,49 @@ def main():
         ports_to_try = [8080, 8081, 8082, 8083, 8084]
         started = False
 
+        # Check Chrome Path explicitly
+        chrome_path = os.environ.get("CHROME_BINARY_PATH")
+        print(f"DEBUG: Chrome Path set to: {chrome_path}")
+        
+        # Opsi browser untuk Eel
+        browser_opts = {
+            'mode': 'chrome', 
+            'host': 'localhost', 
+            'block': True,
+            'cmdline_args': ['--start-maximized']
+        }
+        
+        if chrome_path and os.path.exists(chrome_path):
+             print("[v] Menggunakan Bundled Chrome untuk GUI")
+             # Force path for 'chrome' mode
+             # import eel.browsers removed to avoid UnboundLocalError
+             eel.browsers.set_path('chrome', chrome_path)
+        else:
+             print("[!] Bundled Chrome tidak ditemukan, menggunakan default system browser")
+             browser_opts['mode'] = 'default'
+
         for port in ports_to_try:
             try:
                 print(f"Trying port {port}...")
-                # Start Eel dengan Chrome App mode
                 eel.start(
                     "index.html",
-                    size=(1400, 900),
                     port=port,
-                    mode="chrome-app",  # Buka sebagai Chrome app (standalone window)
-                    host="localhost",
-                    block=True,
+                    **browser_opts
                 )
                 started = True
                 break
             except OSError as ose:
                 if "10048" in str(ose) or "address already in use" in str(ose).lower():
-                    print(f"⚠ Port {port} sudah digunakan, mencoba port lain...")
+                    print(f"[!] Port {port} sudah digunakan, mencoba port lain...")
                     continue
                 else:
                     raise
             except EnvironmentError:
                 # Jika Chrome tidak tersedia, coba browser default
-                print("⚠ Chrome tidak ditemukan, menggunakan browser default...")
+                print("[!] Chrome tidak ditemukan, menggunakan browser default...")
                 try:
                     eel.start(
                         "index.html",
-                        size=(1400, 900),
                         port=port,
                         mode=None,  # Browser default
                         host="localhost",
@@ -665,19 +718,19 @@ def main():
                         "10048" in str(ose)
                         or "address already in use" in str(ose).lower()
                     ):
-                        print(f"⚠ Port {port} sudah digunakan, mencoba port lain...")
+                        print(f"[!] Port {port} sudah digunakan, mencoba port lain...")
                         continue
                     else:
                         raise
 
         if not started:
             print(
-                "✗ Tidak dapat menemukan port yang tersedia. Semua port sudah digunakan."
+                "[x] Tidak dapat menemukan port yang tersedia. Semua port sudah digunakan."
             )
             print("       Silakan tutup aplikasi lain yang menggunakan port 8080-8084.")
 
     except Exception as e:
-        print(f"✗ Error starting GUI: {str(e)}")
+        print(f"[x] Error starting GUI: {str(e)}")
         logger.error(f"Error starting GUI: {str(e)}", exc_info=True)
 
 

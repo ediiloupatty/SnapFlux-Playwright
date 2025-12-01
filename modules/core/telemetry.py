@@ -124,7 +124,7 @@ class TelemetryManager:
         logger.info(f"✓ Account success: {username} ({duration:.2f}s)")
 
     def record_account_failure(
-        self, username: str, error_type: str, error_message: str = None
+        self, username: str, error_type: str, error_message: str = None, nama: str = None
     ):
         """
         Record failed account processing
@@ -133,6 +133,7 @@ class TelemetryManager:
             username (str): Account username
             error_type (str): Type of error (e.g., 'login_failed', 'timeout')
             error_message (str): Detailed error message
+            nama (str): Account name/display name
         """
         self.failed_accounts += 1
         duration = self.end_operation("account_processing", username)
@@ -141,6 +142,7 @@ class TelemetryManager:
         self.accounts_processed.append(
             {
                 "username": username,
+                "nama": nama or username,
                 "status": "failed",
                 "duration": duration,
                 "timestamp": datetime.now().isoformat(),
@@ -149,7 +151,7 @@ class TelemetryManager:
             }
         )
 
-        logger.warning(f"✗ Account failed: {username} - {error_type}")
+        logger.warning(f"✗ Account failed: {nama or username} - {error_type}")
 
     def record_account_skip(self, username: str, reason: str = None):
         """
@@ -258,6 +260,18 @@ class TelemetryManager:
         Returns:
             Dict: Current metrics
         """
+        # Get failed accounts with details
+        failed_accounts_detail = [
+            {
+                "nama": acc.get("nama", acc.get("username", "Unknown")),
+                "username": acc.get("username", ""),
+                "error_type": acc.get("error_type", "unknown"),
+                "error_message": acc.get("error_message", "")
+            }
+            for acc in self.accounts_processed
+            if acc.get("status") == "failed"
+        ]
+        
         return {
             "session_id": self.session_id,
             "session_duration": self.get_total_duration(),
@@ -269,6 +283,7 @@ class TelemetryManager:
             "failure_rate": round(self.get_failure_rate(), 2),
             "avg_processing_time": round(self.get_average_processing_time(), 2),
             "errors": dict(self.errors),
+            "failed_accounts_detail": failed_accounts_detail,  # NEW
             "business_metrics": {
                 "total_stok": self.total_stok_terpantau,
                 "total_penjualan": self.total_penjualan_unit

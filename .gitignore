@@ -90,3 +90,4 @@ Desktop.ini
 *.temp
 ~$*.xlsx
 ~$*.xls
+temp_export/

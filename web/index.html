@@ -12,6 +12,12 @@
 </head>
 
 <body>
+    <script>
+        // Apply sidebar state immediately to prevent flicker/transition on load
+        if (localStorage.getItem("sidebarCollapsed") === "true") {
+            document.body.classList.add("sidebar-collapsed");
+        }
+    </script>
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-header">
@@ -21,6 +27,9 @@
                     <h1>SnapFlux</h1>
                 </div>
             </div>
+            <button id="sidebar-toggle" class="sidebar-toggle-btn" onclick="toggleSidebar()">
+                <i class="fas fa-chevron-left"></i>
+            </button>
         </div>
 
         <nav class="sidebar-nav">
@@ -59,18 +68,8 @@
         <!-- Header -->
         <header class="header">
             <div class="header-flex">
-                <!-- Breadcrumb -->
-                <div class="breadcrumb">
-                    <i class="fas fa-home breadcrumb-icon"></i>
-                    <span>/</span>
-                    <span id="breadcrumb-text">Dasbor</span>
-                </div>
-
                 <!-- Page Title with Icon -->
                 <div class="page-title-wrapper">
-                    <div id="page-icon" class="page-icon">
-                        <i class="fas fa-chart-simple"></i>
-                    </div>
                     <div>
                         <h2 class="page-title page-title-zero-margin" id="page-title">
                             Dasbor
@@ -360,18 +359,6 @@
                     <h3 class="text-2xl font-bold mb-2">
                         Automation Selesai!
                     </h3>
-                    <p class="text-muted mb-6">
-                        Berhasil memproses
-                        <strong id="export-count">0</strong> akun.
-                    </p>
-                    <div class="flex justify-center gap-4">
-                        <button class="btn btn-primary" onclick="downloadExcel()">
-                            <i class="fas fa-file-excel"></i> Unduh Excel
-                        </button>
-                        <button class="btn btn-secondary" onclick="openResultsFolder()">
-                            <i class="fas fa-folder-open"></i> Buka Folder
-                        </button>
-                    </div>
                 </div>
             </section>
 
@@ -478,54 +465,74 @@
                         <div class="mb-6">
                             <h3 class="text-lg font-bold text-main mb-2">Apa itu SnapFlux?</h3>
                             <p>
-                                SnapFlux adalah sistem otomasi cerdas yang dirancang khusus untuk PT MOYVERONIKA guna
-                                mengelola dan memantau data pangkalan (MAP) secara efisien. Aplikasi ini menggantikan
-                                proses manual yang memakan waktu dengan solusi otomatis yang cepat dan akurat.
+                                SnapFlux adalah sistem otomasi cerdas yang dirancang khusus untuk PT.
+                                MOYVERONIKA guna
+                                mengelola dan memantau data pangkalan (MAP) secara efisien. Aplikasi ini
+                                menggantikan
+                                proses manual yang memakan waktu dengan solusi otomatis yang cepat dan
+                                akurat.
                             </p>
                         </div>
 
                         <div class="mb-6">
                             <h3 class="text-lg font-bold text-main mb-2">Masalah yang Diatasi</h3>
                             <ul class="list-disc pl-5 space-y-1">
-                                <li>Banyak pangkalan dikelola oleh orang tua yang kurang terbiasa dengan teknologi.</li>
-                                <li>Kualitas jaringan sering lambat, sehingga akses website memakan waktu.</li>
+                                <li>Banyak pangkalan dikelola oleh orang tua yang kurang terbiasa dengan
+                                    teknologi.</li>
+                                <li>Kualitas jaringan sering lambat, sehingga akses website memakan waktu.
+                                </li>
                                 <li>Proses input dan pengecekan harus dilakukan satu per satu.</li>
-                                <li>Setiap akun membutuhkan waktu 1 menit atau lebih untuk login, cek stok, mencatat,
+                                <li>Setiap akun membutuhkan waktu 1 menit atau lebih untuk login, cek stok,
+                                    mencatat,
                                     dan logout.</li>
-                                <li>Untuk 100 akun, waktu pengecekan total bisa mencapai 2 jam lebih setiap hari.</li>
-                                <li>Ketika pangkalan lupa input atau inputnya tidak lengkap, admin harus menghubungi
+                                <li>Untuk 100 akun, waktu pengecekan total bisa mencapai 2 jam lebih setiap
+                                    hari.</li>
+                                <li>Ketika pangkalan lupa input atau inputnya tidak lengkap, admin harus
+                                    menghubungi
                                     ulang satu per satu.</li>
-                                <li>Jika stok tidak diinput, perusahaan tidak bisa memonitor tingkat ketersediaan barang
-                                    secara akurat, dan gas tidak dimasukan ke pangkalan kalau stok belum kosong.</li>
+                                <li>Jika stok tidak diinput, perusahaan tidak bisa memonitor tingkat
+                                    ketersediaan barang
+                                    secara akurat, dan gas tidak dimasukan ke pangkalan kalau stok belum
+                                    kosong.</li>
                             </ul>
                         </div>
 
                         <div class="mb-6">
                             <h3 class="text-lg font-bold text-main mb-2">Tujuan Pengembangan</h3>
                             <ul class="list-disc pl-5 space-y-1">
-                                <li>Mengambil data otomatis dari 100 akun dalam satu kali proses, tanpa harus login
+                                <li>Mengambil data otomatis dari 100 akun dalam satu kali proses, tanpa
+                                    harus login
                                     manual.</li>
                                 <li>Mempercepat waktu scraping dari 1 menit per akun menjadi < 15 detik per akun.</li>
                                 <li>Menghemat lebih dari 80% waktu operasional setiap hari.</li>
                                 <li>Mengurangi kesalahan input akibat proses manual.</li>
-                                <li>Memudahkan analisis stok dan input dengan data yang terkumpul secara real-time.</li>
-                                <li>Mengirim notifikasi/pengingat untuk pangkalan yang belum melakukan input, terutama
+                                <li>Memudahkan analisis stok dan input dengan data yang terkumpul secara
+                                    real-time.</li>
+                                <li>Mengirim notifikasi/pengingat untuk pangkalan yang belum melakukan
+                                    input, terutama
                                     jika stok masih tinggi (manual lewat Whatsapp).</li>
-                                <li>Memberikan kemampuan bagi perusahaan untuk membantu input jika pangkalan terkendala
+                                <li>Memberikan kemampuan bagi perusahaan untuk membantu input jika pangkalan
+                                    terkendala
                                     jaringan.</li>
-                                <li>Menghilangkan kebutuhan pindah-pindah tab, login satu-satu, dan pencatatan excel
+                                <li>Menghilangkan kebutuhan pindah-pindah tab, login satu-satu, dan
+                                    pencatatan excel
                                     manual.</li>
-                                <li>Memberikan sistem monitoring yang stabil dan dapat dijalankan oleh siapa saja.</li>
+                                <li>Memberikan sistem monitoring yang stabil dan dapat dijalankan oleh siapa
+                                    saja.</li>
                             </ul>
                         </div>
 
                         <div class="mb-6">
                             <h3 class="text-lg font-bold text-main mb-2">Cara Kerja Singkat</h3>
                             <p>
-                                SnapFlux bekerja dengan mensimulasikan interaksi pengguna pada browser secara otomatis.
-                                Sistem akan login ke setiap akun pangkalan yang terdaftar, mengambil data stok dan
-                                penjualan terkini, melakukan input data jika diperlukan, dan menyimpan semua hasil ke
-                                dalam laporan Excel yang rapi. Semua proses ini berjalan di latar belakang (background)
+                                SnapFlux bekerja dengan mensimulasikan interaksi pengguna pada browser
+                                secara otomatis.
+                                Sistem akan login ke setiap akun pangkalan yang terdaftar, mengambil data
+                                stok dan
+                                penjualan terkini, melakukan input data jika diperlukan, dan menyimpan semua
+                                hasil ke
+                                dalam laporan Excel yang rapi. Semua proses ini berjalan di latar belakang
+                                (background)
                                 atau terlihat (visible) sesuai pengaturan Anda.
                             </p>
                         </div>
@@ -543,9 +550,12 @@
                         <div class="mb-6">
                             <h3 class="text-lg font-bold text-main mb-2">Keamanan dan Batasan</h3>
                             <p>
-                                Aplikasi ini dikembangkan secara internal khusus untuk operasional <strong>PT
-                                    MOYVERONIKA</strong>. Data kredensial disimpan secara lokal di komputer pengguna dan
-                                tidak dikirim ke server eksternal manapun selain server resmi MAP saat proses login.
+                                Aplikasi ini dikembangkan secara internal khusus untuk operasional
+                                <strong>PT
+                                    MOYVERONIKA</strong>. Data kredensial disimpan secara lokal di komputer
+                                pengguna dan
+                                tidak dikirim ke server eksternal manapun selain server resmi MAP saat
+                                proses login.
                                 Penggunaan aplikasi ini terbatas pada karyawan yang berwenang.
                             </p>
                         </div>
@@ -600,7 +610,7 @@
                 <div class="footer-copyright-wrapper">
                     <p class="footer-copyright-text">
                         <i class="far fa-copyright footer-copyright-icon"></i>
-                        2024 Edi Loupatty
+                        2024 Edi (22024169)
                     </p>
                     <p class="footer-rights">
                         All rights reserved.
