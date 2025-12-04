@@ -3,14 +3,14 @@
 :root {
     /* Custom Color Palette */
     /* Custom Color Palette - PT. MOYVERONIKA Branding */
-    --primary: #0eb0f2;
+    --primary: #11b0f2;
     /* Brand Blue */
-    --primary-hover: #0c96ce;
+    --primary-hover: #0891d1;
     /* Darker Blue for hover */
     --primary-light: #e7f7fe;
     /* Very light blue for backgrounds */
 
-    --secondary: #64748b;
+    --secondary: #e9252f;
     /* Neutral Slate */
     --secondary-hover: #475569;
 
@@ -26,11 +26,11 @@
     --text-on-dark: #f4f4f4;
 
     --border-color: #e2e8f0;
-    --border-focus: #0eb0f2;
+    --border-focus: #11b0f2;
 
     --success: #10b981;
     --warning: #f59e0b;
-    --error: #e82531;
+    --error: #e9252f;
     /* Brand Red */
 
     /* Spacing & Radius */
@@ -48,6 +48,49 @@
         0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
     --shadow-glow: 0 0 15px rgba(14, 176, 242, 0.2);
     /* Adjusted to primary color */
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
 
 /* Custom Scrollbar - Minimalist */
@@ -247,9 +290,11 @@ body {
 }
 
 .nav-item.active {
-    background: linear-gradient(90deg,
-            rgba(100, 116, 139, 0.2) 0%,
-            rgba(100, 116, 139, 0.1) 100%);
+    background: linear-gradient(
+        90deg,
+        rgba(100, 116, 139, 0.2) 0%,
+        rgba(100, 116, 139, 0.1) 100%
+    );
     color: #ffffff;
     border-left: 3px solid rgba(255, 255, 255, 0.5);
     font-weight: 700;
@@ -297,7 +342,9 @@ body {
 .sidebar-footer span {
     opacity: 1;
     visibility: visible;
-    transition: opacity 0.2s ease, visibility 0.2s ease;
+    transition:
+        opacity 0.2s ease,
+        visibility 0.2s ease;
     white-space: nowrap;
 }
 
@@ -406,7 +453,9 @@ body.sidebar-collapsed .account-status-indicator {
     top: 0;
     z-index: 40;
     border-bottom: 1px solid rgba(226, 232, 240, 0.6);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+    box-shadow:
+        0 4px 6px -1px rgba(0, 0, 0, 0.02),
+        0 2px 4px -1px rgba(0, 0, 0, 0.02);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -432,6 +481,7 @@ body.sidebar-collapsed .account-status-indicator {
     /* Push footer to bottom */
     overflow: hidden;
     box-sizing: border-box;
+    background: var(--bg-main);
 }
 
 .container * {
@@ -446,6 +496,74 @@ body.sidebar-collapsed .account-status-indicator {
 
 .page-section.active {
     display: block;
+}
+
+/* Dashboard Page - Full Width */
+#dashboard-page {
+    width: calc(100vw - 280px) !important;
+    max-width: calc(100vw - 280px) !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+    position: relative;
+}
+
+#dashboard-page.active {
+    display: block !important;
+}
+
+#dashboard-page:not(.active) {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* Hide fixed backgrounds when dashboard is not active */
+#dashboard-page:not(.active) > div > div[style*="position: fixed"] {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* Show fixed backgrounds only when dashboard is active */
+#dashboard-page.active > div > div[style*="position: fixed"] {
+    display: block !important;
+    visibility: visible !important;
+}
+
+#dashboard-page * {
+    box-sizing: border-box;
+}
+
+/* Ensure dashboard hero section extends fully without gap */
+#dashboard-page > div {
+    margin: 0 auto !important;
+    padding-bottom: 0 !important;
+    position: relative;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: 100% !important;
+}
+
+/* Ensure other pages use normal container and are visible when active */
+#automation-page,
+#monitoring-page,
+#settings-page,
+#results-page,
+#help-page {
+    padding: 0;
+    margin: 0;
+    width: 100%;
+}
+
+#automation-page.active,
+#monitoring-page.active,
+#settings-page.active,
+#results-page.active,
+#help-page.active {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 @keyframes fadeIn {
@@ -530,23 +648,24 @@ body.sidebar-collapsed .account-status-indicator {
 }
 
 .btn-primary {
-    background-color: var(--primary);
+    background: linear-gradient(135deg, #11b0f2 0%, #0891d1 100%);
     color: white;
-    box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 4px 6px -1px rgba(17, 176, 242, 0.3);
     transition: all 0.2s ease;
     position: relative;
     overflow: hidden;
+    border: none;
 }
 
 .btn-primary:hover:not(:disabled) {
-    background-color: var(--primary-hover);
-    box-shadow: 0 6px 12px -1px rgba(99, 102, 241, 0.5);
+    background: linear-gradient(135deg, #0891d1 0%, #0670a1 100%);
+    box-shadow: 0 6px 12px -1px rgba(17, 176, 242, 0.5);
     transform: translateY(-2px) scale(1.02);
 }
 
 .btn-primary:active:not(:disabled) {
     transform: translateY(0) scale(0.98);
-    box-shadow: 0 2px 4px -1px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 2px 4px -1px rgba(17, 176, 242, 0.3);
 }
 
 .btn-secondary {
@@ -570,12 +689,16 @@ body.sidebar-collapsed .account-status-indicator {
 }
 
 .btn-danger {
-    background-color: #fee2e2;
-    color: var(--error);
+    background: linear-gradient(135deg, #e9252f 0%, #c91e28 100%);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 6px -1px rgba(233, 37, 47, 0.3);
 }
 
 .btn-danger:hover:not(:disabled) {
-    background-color: #fecaca;
+    background: linear-gradient(135deg, #c91e28 0%, #a01820 100%);
+    box-shadow: 0 6px 12px -1px rgba(233, 37, 47, 0.5);
+    transform: translateY(-2px) scale(1.02);
 }
 
 .btn:disabled {
@@ -627,11 +750,36 @@ body.sidebar-collapsed .account-status-indicator {
    Specific Views
    ========================================= */
 /* Dashboard */
+/* Stats Grid */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 1.5rem;
     margin-bottom: 2rem;
+}
+
+/* Monitoring Page Grids */
+#monitoring-page [style*="grid-template-columns: repeat(4"] {
+    display: grid !important;
+    gap: 1rem !important;
+}
+
+@media screen and (min-width: 1200px) {
+    #monitoring-page [style*="grid-template-columns: repeat(4"] {
+        grid-template-columns: repeat(4, 1fr) !important;
+    }
+}
+
+@media screen and (min-width: 769px) and (max-width: 1199px) {
+    #monitoring-page [style*="grid-template-columns: repeat(4"] {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    #monitoring-page [style*="grid-template-columns: repeat(4"] {
+        grid-template-columns: 1fr !important;
+    }
 }
 
 .stat-card {
@@ -759,6 +907,7 @@ body.sidebar-collapsed .account-status-indicator {
 
 .flex {
     display: flex;
+    flex-wrap: wrap;
 }
 
 .items-center {
@@ -767,6 +916,14 @@ body.sidebar-collapsed .account-status-indicator {
 
 .justify-between {
     justify-content: space-between;
+}
+
+@media screen and (max-width: 768px) {
+    .flex.justify-between {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
 }
 
 .gap-1 {
@@ -826,7 +983,7 @@ body.sidebar-collapsed .account-status-indicator {
     padding-left: 1.25rem;
 }
 
-.space-y-1>*+* {
+.space-y-1 > * + * {
     margin-top: 0.25rem;
 }
 
@@ -982,11 +1139,28 @@ body.sidebar-collapsed .account-status-indicator {
     display: flex;
     gap: 0.5rem;
     flex-wrap: wrap;
+    align-items: center;
 }
 
 .btn-group .btn {
-    flex: 1;
-    min-width: 120px;
+    flex: 0 1 auto;
+    margin: 0;
+    white-space: nowrap;
+}
+
+@media screen and (max-width: 768px) {
+    .btn-group {
+        flex-direction: column;
+        width: 100%;
+        gap: 0.5rem;
+    }
+
+    .btn-group .btn {
+        width: 100%;
+        flex: 1 1 100%;
+        margin-bottom: 0;
+        white-space: normal;
+    }
 }
 
 /* Card responsive improvements */
@@ -1060,11 +1234,11 @@ body.sidebar-collapsed .account-status-indicator {
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-.toggle-checkbox:checked+.toggle-switch {
+.toggle-checkbox:checked + .toggle-switch {
     background-color: var(--primary);
 }
 
-.toggle-checkbox:checked+.toggle-switch::after {
+.toggle-checkbox:checked + .toggle-switch::after {
     transform: translateX(20px);
 }
 
@@ -1142,9 +1316,11 @@ body.sidebar-collapsed .account-status-indicator {
 
 .account-list-item.processing {
     border-color: var(--primary) !important;
-    background: linear-gradient(90deg,
-            rgba(26, 61, 100, 0.08) 0%,
-            rgba(99, 102, 241, 0.08) 100%);
+    background: linear-gradient(
+        90deg,
+        rgba(26, 61, 100, 0.08) 0%,
+        rgba(99, 102, 241, 0.08) 100%
+    );
     box-shadow:
         0 0 20px rgba(26, 61, 100, 0.15),
         0 4px 8px rgba(0, 0, 0, 0.1);
@@ -1165,7 +1341,6 @@ body.sidebar-collapsed .account-status-indicator {
 }
 
 @keyframes highlight-processing {
-
     0%,
     100% {
         box-shadow:
@@ -1604,9 +1779,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 }
 
 /* Tablet Styles (768px - 1024px) */
-@media screen and (max-width: 1024px) and (min-width: 769px) {
-
-    /* Visibility utilities */
+@media screen and (min-width: 769px) and (max-width: 1024px) {
     .hide-tablet {
         display: none !important;
     }
@@ -1616,7 +1789,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     }
 
     .flex-column-tablet {
-        flex-direction: column !important;
+        flex-direction: column;
     }
 
     .sidebar {
@@ -1627,6 +1800,11 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
         margin-left: 240px;
     }
 
+    #dashboard-page {
+        width: calc(100vw - 240px) !important;
+        max-width: calc(100vw - 240px) !important;
+    }
+
     .container {
         padding: 2rem 1.5rem;
         max-width: none;
@@ -1634,7 +1812,8 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
     .stats-grid {
         grid-template-columns: repeat(2, 1fr);
-        gap: 1.5rem;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
     }
 
     .page-title {
@@ -1647,7 +1826,9 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
     /* Adjust cards for tablet */
     .card {
-        padding: 1.25rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        width: 100%;
     }
 
     /* Table responsive wrapper */
@@ -1661,7 +1842,6 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
 /* Mobile Styles (max-width: 768px) */
 @media screen and (max-width: 768px) {
-
     /* Visibility utilities */
     .hide-mobile {
         display: none !important;
@@ -1775,14 +1955,50 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     /* Container adjustments */
     .container {
         padding: 1.5rem 1rem;
-        overflow-x: hidden;
         width: 100%;
+        max-width: 100%;
     }
 
     .container * {
-        max-width: 100%;
+        box-sizing: border-box;
         word-wrap: break-word;
         overflow-wrap: break-word;
+    }
+
+    /* Dashboard page stays full width on mobile */
+    #dashboard-page {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 auto !important;
+    }
+
+    #dashboard-page > div {
+        min-height: auto !important;
+        padding: 3rem 1rem 0 1rem !important;
+        margin: 0 auto !important;
+        width: 100% !important;
+        display: flex !important;
+        justify-content: center !important;
+    }
+
+    #dashboard-page > div > div:nth-child(3) {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 2rem 1rem 0 1rem !important;
+    }
+
+    #dashboard-page h1 {
+        font-size: 2.5rem !important;
+    }
+
+    #dashboard-page p {
+        font-size: 1rem !important;
+    }
+
+    #dashboard-page .grid-responsive {
+        grid-template-columns: 1fr !important;
+        gap: 1.5rem !important;
     }
 
     /* Header adjustments */
@@ -2039,6 +2255,38 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
         gap: 1rem;
     }
 
+    /* Ensure stats grid on monitoring is responsive */
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+
+    /* Fix inline grid styles on monitoring page */
+    #monitoring-page div[style*="grid-template-columns: repeat(4"] {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 1rem !important;
+    }
+
+    /* Settings form grid responsive */
+    #settings-page form div[style*="grid-template-columns: 1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+    }
+
+    #settings-page form div[style*="grid-column: 1 / -1"] {
+        grid-column: 1 !important;
+    }
+
+    /* Automation page controls */
+    #automation-page .flex.justify-between {
+        flex-direction: row !important;
+        align-items: center;
+    }
+
+    #automation-page .flex.gap-2 {
+        flex-wrap: wrap;
+        gap: 0.5rem !important;
+    }
+
     .card-header,
     .card-body,
     .card-footer {
@@ -2181,7 +2429,36 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 @media screen and (max-width: 480px) {
     .container {
         padding: 1rem 0.75rem;
-        overflow-x: hidden;
+    }
+
+    /* Account list responsive */
+    .account-list-item {
+        padding: 0.75rem;
+        font-size: 0.9rem;
+    }
+
+    .account-name {
+        font-size: 0.85rem;
+    }
+
+    /* Processing view mobile */
+    #processing-view {
+        padding: 1rem;
+    }
+
+    .processing-content-padding {
+        padding: 1rem;
+    }
+
+    /* Monitoring page - stack everything */
+    #monitoring-page [style*="display: flex"] {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    #monitoring-page button {
+        width: 100%;
+        margin-bottom: 0.5rem;
     }
 
     .container h1,
@@ -2291,18 +2568,77 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
     .table-responsive table {
         font-size: 0.8rem;
+        min-width: 100%;
     }
 
     .table-responsive th,
     .table-responsive td {
-        padding: 0.375rem 0.5rem;
+        padding: 0.75rem 0.5rem;
+        font-size: 0.8rem;
+    }
+
+    /* Monitoring table mobile optimizations */
+    #monitoring-page table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    #monitoring-page thead,
+    #monitoring-page tbody,
+    #monitoring-page tr {
+        display: table;
+        width: 100%;
+        table-layout: fixed;
+    }
+
+    /* Monitoring header controls stack on mobile */
+    #monitoring-page > div:first-child {
+        flex-direction: column !important;
+        gap: 1rem !important;
+    }
+
+    #monitoring-page > div:first-child > div:last-child {
+        width: 100%;
+        flex-direction: column !important;
+    }
+
+    #monitoring-page > div:first-child button,
+    #monitoring-page > div:first-child input {
+        width: 100%;
     }
 
     /* Form ultra small adjustments */
     .form-input,
     .form-select {
-        padding: 0.625rem 0.75rem;
+        padding: 0.625rem;
         font-size: 0.9rem;
+    }
+
+    /* Settings page form improvements */
+    #settings-page form {
+        padding: 1.5rem 1rem !important;
+    }
+
+    #settings-page form div[style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+    }
+
+    #settings-page label div[style*="width: 32px"] {
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 0.8rem !important;
+    }
+
+    #settings-page .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+
+    #settings-page div[style*="justify-content: flex-end"] {
+        justify-content: stretch !important;
+        flex-direction: column !important;
     }
 
     .card {
@@ -2418,8 +2754,26 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     }
 
     .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: 1fr;
         gap: 0.75rem;
+    }
+
+    /* Monitoring page specific mobile adjustments */
+    #monitoring-page div[style*="display: grid"] {
+        gap: 0.75rem !important;
+    }
+
+    #monitoring-page button[style*="padding"] {
+        padding: 0.5rem 0.75rem !important;
+        font-size: 0.85rem !important;
+    }
+
+    /* Ensure all cards have proper width */
+    .card,
+    .stat-card {
+        width: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
     }
 
     .stat-card {
@@ -2518,7 +2872,6 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
    ========================================= */
 
 @media print {
-
     .sidebar,
     .mobile-header,
     .hamburger-menu,
@@ -2567,7 +2920,6 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
 /* Reduced motion for users who prefer it */
 @media (prefers-reduced-motion: reduce) {
-
     *,
     *::before,
     *::after {
@@ -2588,7 +2940,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
         --border-color: #000000;
         --text-muted: #000000;
         --bg-card: #ffffff;
-        --primary: #0000ff;
+        --primary: #11b0f2;
     }
 
     .card {
@@ -2637,6 +2989,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    flex-wrap: wrap;
 }
 
 .page-icon {
@@ -2755,8 +3108,15 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 /* Automation Page Components */
 .automation-control-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 2fr 1fr;
     gap: 1rem;
+}
+
+@media screen and (max-width: 768px) {
+    .automation-control-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem;
+    }
 }
 
 .form-group-zero-margin {
@@ -2800,15 +3160,33 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 .processing-main-grid {
     display: grid;
     grid-template-columns: auto 1fr auto;
-    gap: 1.5rem;
     align-items: center;
-    margin-bottom: 1.25rem;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+@media screen and (max-width: 768px) {
+    .processing-main-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        text-align: center;
+    }
+
+    .processing-main-grid > div:last-child {
+        justify-content: center;
+    }
+
+    .processing-chart-wrapper {
+        margin: 0 auto;
+    }
 }
 
 .processing-chart-wrapper {
     position: relative;
     width: 80px;
     height: 80px;
+    flex-shrink: 0;
+    margin: 0;
 }
 
 .processing-svg-rotate {
@@ -2883,7 +3261,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 .processing-progress-fill {
     width: 0%;
     height: 100%;
-    background: linear-gradient(90deg, var(--primary) 0%, #6366f1 100%);
+    background: linear-gradient(90deg, #11b0f2 0%, #0891d1 100%);
     transition: width 0.3s ease;
 }
 
@@ -3039,6 +3417,10 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     padding: 1.5rem 2rem 1rem;
     margin-top: 2rem;
     border-top: 1px solid #e2e8f0;
+    flex-shrink: 0;
+    transition: margin-top 0.3s ease;
+    position: relative;
+    z-index: 100;
 }
 
 .footer-grid {
@@ -3101,19 +3483,19 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 }
 
 .footer-social-link.github:hover {
-    color: #4a70a9;
+    color: #11b0f2;
 }
 
 .footer-social-link.instagram:hover {
-    color: #E1306C;
+    color: #e1306c;
 }
 
 .footer-social-link.kaggle:hover {
-    color: #20BEFF;
+    color: #20beff;
 }
 
 .footer-social-link.twitter:hover {
-    color: #1DA1F2;
+    color: #1da1f2;
 }
 
 .footer-copyright-wrapper {
@@ -3234,7 +3616,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     padding-left: 1.25rem;
 }
 
-.space-y-1>*+* {
+.space-y-1 > * + * {
     margin-top: 0.25rem;
 }
 /* =========================================
@@ -3251,7 +3633,9 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: opacity 0.5s ease, visibility 0.5s ease;
+    transition:
+        opacity 0.5s ease,
+        visibility 0.5s ease;
 }
 
 .login-overlay.hidden {
@@ -3264,7 +3648,9 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     background: white;
     padding: 2.5rem;
     border-radius: var(--radius-xl);
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    box-shadow:
+        0 20px 25px -5px rgba(0, 0, 0, 0.1),
+        0 10px 10px -5px rgba(0, 0, 0, 0.04);
     width: 100%;
     max-width: 400px;
     text-align: center;
@@ -3272,8 +3658,14 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 }
 
 @keyframes slideUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .login-header {
@@ -3313,14 +3705,27 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
 .login-error:not(.hidden) {
     display: block;
-    animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+    animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
 @keyframes shake {
-  10%, 90% { transform: translate3d(-1px, 0, 0); }
-  20%, 80% { transform: translate3d(2px, 0, 0); }
-  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-  40%, 60% { transform: translate3d(4px, 0, 0); }
+    10%,
+    90% {
+        transform: translate3d(-1px, 0, 0);
+    }
+    20%,
+    80% {
+        transform: translate3d(2px, 0, 0);
+    }
+    30%,
+    50%,
+    70% {
+        transform: translate3d(-4px, 0, 0);
+    }
+    40%,
+    60% {
+        transform: translate3d(4px, 0, 0);
+    }
 }
 
 .login-footer {

@@ -45,6 +45,10 @@
                 <i class="fas fa-file-lines"></i>
                 <span>Hasil</span>
             </div>
+            <div class="nav-item" onclick="showPage('monitoring')">
+                <i class="fas fa-chart-line"></i>
+                <span>Monitoring</span>
+            </div>
             <div class="nav-item" onclick="showPage('settings')">
                 <i class="fas fa-sliders"></i>
                 <span>Pengaturan</span>
@@ -95,110 +99,81 @@
             </div>
         </header>
 
+        <!-- DASHBOARD PAGE (Full Width, No Container) -->
+        <section id="dashboard-page" class="page-section active" style="padding: 0; margin: 0; width: 100%; max-width: 100%;">
+            <!-- Hero Section with Background Full Width -->
+            <div style="position: relative; width: 100%; padding: 4rem 0 3rem 0; display: flex; align-items: center; justify-content: center; overflow: hidden; margin: 0 auto;">
+                <!-- Background Image with Blur (Extended to cover full viewport) -->
+                <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-image: url('img/bg.png'); background-size: cover; background-position: center center; background-repeat: no-repeat; filter: blur(8px); transform: scale(1.1); z-index: -2;"></div>
+
+                <!-- Dark Overlay (Extended to cover full viewport) -->
+                <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.5) 100%); z-index: -1;"></div>
+
+                    <!-- Content -->
+                    <div style="position: relative; z-index: 10; text-align: center; padding: 2rem 3rem 0 3rem; max-width: 1200px; width: 100%; margin: 0 auto;">
+                        <!-- Hero Text -->
+                        <div style="margin-bottom: 3rem; animation: fadeInUp 0.8s ease;">
+                            <h1 style="font-size: 4rem; font-weight: 800; color: white; margin: 0 auto 1rem auto; text-shadow: 2px 2px 8px rgba(0,0,0,0.3); letter-spacing: -1px; text-align: center;">
+                                SnapFlux Automation
+                            </h1>
+                            <p style="font-size: 1.4rem; color: rgba(255,255,255,0.95); line-height: 1.8; margin: 0 auto; max-width: 800px; text-shadow: 1px 1px 4px rgba(0,0,0,0.5);">
+                                Sistem otomasi monitoring dan pengelolaan stok pangkalan LPG secara realtime dengan teknologi <strong>Playwright</strong>
+                            </p>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div style="display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap; margin-bottom: 3rem;">
+                            <button onclick="showPage('automation')" style="background: linear-gradient(135deg, #11b0f2 0%, #0891d1 100%); color: white; border: none; padding: 1rem 2.5rem; font-size: 1.1rem; font-weight: 600; border-radius: 50px; cursor: pointer; box-shadow: 0 8px 20px rgba(17, 176, 242, 0.4); transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 0.75rem;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 12px 28px rgba(17, 176, 242, 0.5)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 20px rgba(17, 176, 242, 0.4)'">
+                                <i class="fas fa-bolt"></i>
+                                Mulai Otomasi
+                            </button>
+                            <button onclick="showPage('monitoring')" style="background: rgba(255,255,255,0.15); color: white; border: 2px solid rgba(255,255,255,0.3); padding: 1rem 2.5rem; font-size: 1.1rem; font-weight: 600; border-radius: 50px; cursor: pointer; backdrop-filter: blur(10px); transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 0.75rem;" onmouseover="this.style.background='rgba(255,255,255,0.25)'; this.style.transform='translateY(-3px)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.transform='translateY(0)'">
+                                <i class="fas fa-chart-line"></i>
+                                Lihat Monitoring
+                            </button>
+                        </div>
+
+                        <!-- Divider -->
+                        <div style="width: 80px; height: 2px; background: rgba(255,255,255,0.3); margin: 0 auto 2.5rem;"></div>
+
+                        <!-- Quick Guide -->
+                        <h2 style="font-size: 2.5rem; font-weight: 700; color: white; margin-bottom: 1rem; text-shadow: 2px 2px 8px rgba(0,0,0,0.3);">
+                            Cara Memulai
+                        </h2>
+                        <p style="font-size: 1.2rem; color: rgba(255,255,255,0.9); margin-bottom: 2.5rem; text-shadow: 1px 1px 4px rgba(0,0,0,0.5);">
+                            Mulai otomasi dalam 3 langkah sederhana
+                        </p>
+
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; padding: 0 1rem; margin-bottom: 0;">
+                            <div style="text-align: center; padding: 2.5rem 2rem; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 16px; border: 1px solid rgba(255,255,255,0.2);">
+                                <div style="width: 70px; height: 70px; background: linear-gradient(135deg, #11b0f2 0%, #0891d1 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; box-shadow: 0 8px 20px rgba(17, 176, 242, 0.4);">
+                                    <span style="color: white; font-size: 2rem; font-weight: 700;">1</span>
+                                </div>
+                                <h3 style="font-size: 1.4rem; font-weight: 600; margin-bottom: 1rem; color: white;">Muat Data</h3>
+                                <p style="color: rgba(255,255,255,0.85); line-height: 1.7; font-size: 1rem;">Buka halaman Otomasi dan klik "Muat dari Database" untuk load akun</p>
+                            </div>
+
+                            <div style="text-align: center; padding: 2.5rem 2rem; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 16px; border: 1px solid rgba(255,255,255,0.2);">
+                                <div style="width: 70px; height: 70px; background: linear-gradient(135deg, #11b0f2 0%, #0891d1 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; box-shadow: 0 8px 20px rgba(17, 176, 242, 0.4);">
+                                    <span style="color: white; font-size: 2rem; font-weight: 700;">2</span>
+                                </div>
+                                <h3 style="font-size: 1.4rem; font-weight: 600; margin-bottom: 1rem; color: white;">Pilih Akun</h3>
+                                <p style="color: rgba(255,255,255,0.85); line-height: 1.7; font-size: 1rem;">Pilih akun yang ingin diproses atau klik "Pilih Semua" untuk proses semua akun</p>
+                            </div>
+
+                            <div style="text-align: center; padding: 2.5rem 2rem; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 16px; border: 1px solid rgba(255,255,255,0.2);">
+                                <div style="width: 70px; height: 70px; background: linear-gradient(135deg, #e9252f 0%, #c91e28 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; box-shadow: 0 8px 20px rgba(233, 37, 47, 0.4);">
+                                    <span style="color: white; font-size: 2rem; font-weight: 700;">3</span>
+                                </div>
+                                <h3 style="font-size: 1.4rem; font-weight: 600; margin-bottom: 1rem; color: white;">Jalankan</h3>
+                                <p style="color: rgba(255,255,255,0.85); line-height: 1.7; font-size: 1rem;">Klik "Mulai Automation" dan lihat hasilnya di halaman Monitoring</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        </section>
+
         <div class="container">
-            <!-- DASHBOARD PAGE -->
-            <section id="dashboard-page" class="page-section active">
-                <!-- Main Stats -->
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-value" id="total-accounts">0</div>
-                        <div class="stat-label">Total Akun</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="success-count" style="color: var(--success)">
-                            0
-                        </div>
-                        <div class="stat-label">Berhasil</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="failed-count" style="color: var(--error)">
-                            0
-                        </div>
-                        <div class="stat-label">Gagal</div>
-                    </div>
-                </div>
-
-                <!-- Monitoring Dashboard -->
-                <div class="dashboard-grid-2col">
-                    <!-- Performance Metrics -->
-                    <div class="card">
-                        <h3 class="card-title">
-                            <i class="fas fa-gauge-high card-icon-primary"></i>
-                            Kinerja
-                        </h3>
-                        <div class="metrics-list">
-                            <div class="metric-row">
-                                <span class="metric-label">Tingkat Keberhasilan</span>
-                                <span id="metric-success-rate" class="metric-value-success">0%</span>
-                            </div>
-                            <div class="metric-row">
-                                <span class="metric-label">Waktu Proses Rata-rata</span>
-                                <span id="metric-avg-time" class="metric-value-primary">0s</span>
-                            </div>
-                            <div class="metric-row">
-                                <span class="metric-label">Durasi Sesi</span>
-                                <span id="metric-session-duration" class="metric-value-bold">0s</span>
-                            </div>
-                            <div class="metric-row">
-                                <span class="metric-label">Laju Proses</span>
-                                <span id="metric-throughput" class="metric-value-bold">0/min</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Real-time Data Summary -->
-                    <div class="card">
-                        <h3 class="card-title">
-                            <i class="fas fa-chart-line card-icon-primary"></i>
-                            Ringkasan Data Real-time
-                        </h3>
-                        <div class="metrics-list">
-                            <div class="metric-row">
-                                <span class="metric-label">Total Penjualan (Input) </span>
-                                <span id="metric-total-sales" class="metric-value-success">0</span>
-                            </div>
-                            <div class="metric-row">
-                                <span class="metric-label">Total Stok Terpantau </span>
-                                <span id="metric-total-stock" class="metric-value-primary">0</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Stock Movement Monitoring -->
-                    <div class="card">
-                        <h3 class="card-title">
-                            <i class="fas fa-arrows-rotate card-icon-primary"></i>
-                            Pergerakan Stok
-                        </h3>
-                        <div class="metrics-list">
-                            <div class="metric-row">
-                                <span class="metric-label">Total Penjualan Kemarin</span>
-                                <span id="metric-actual-sales" class="metric-value-success">0 Tabung</span>
-                            </div>
-                            <div class="metric-row">
-                                <span class="metric-label">Terjual Dilaporkan Kemarin</span>
-                                <span id="metric-restock-detected" class="metric-value-primary">0 Tabung</span>
-                            </div>
-                            <div class="metric-row">
-                                <span class="metric-label">Penjualan Tidak Tercatat</span>
-                                <span id="metric-accounts-movement" class="metric-value-bold">0 Tabung</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Error Tracking (if errors exist) -->
-                <div id="error-tracking" class="card error-card-margin">
-                    <h3 class="card-title">
-                        <i class="fas fa-triangle-exclamation card-icon-error"></i>
-                        Error
-                    </h3>
-                    <div id="error-list" class="error-list">
-                        <!-- Error items will be inserted here -->
-                    </div>
-                </div>
-            </section>
-
             <!-- AUTOMATION PAGE -->
             <section id="automation-page" class="page-section">
                 <div class="card mb-4">
@@ -275,11 +250,11 @@
                                     <defs>
                                         <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                                             <stop offset="0%" style="
-                                                        stop-color: #4a70a9;
+                                                        stop-color: #11b0f2;
                                                         stop-opacity: 1;
                                                     " />
                                             <stop offset="100%" style="
-                                                        stop-color: #6366f1;
+                                                        stop-color: #0891d1;
                                                         stop-opacity: 1;
                                                     " />
                                         </linearGradient>
@@ -333,7 +308,12 @@
                 <!-- Account List Container -->
                 <div class="card account-list-card">
                     <div class="card-header flex justify-between items-center mb-4">
-                        <div class="empty-flex"></div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-sort-alpha-down" style="color: var(--primary);"></i>
+                            <span style="font-size: 0.875rem; color: var(--muted);">
+                                Diurutkan A-Z
+                            </span>
+                        </div>
                         <button id="select-all-btn" class="btn btn-primary text-sm select-all-btn-animated"
                             onclick="toggleSelectAll()">
                             <i class="fas fa-check-double"></i> Pilih Semua
@@ -384,6 +364,164 @@
                 </div>
             </section>
 
+            <!-- MONITORING PAGE -->
+            <section id="monitoring-page" class="page-section">
+                <!-- Header Section -->
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--text-main); margin: 0;">
+                            <i class="fas fa-chart-line" style="color: var(--primary);"></i> Monitoring & Analitik
+                        </h2>
+                        <p style="color: var(--muted); font-size: 0.9rem; margin: 0.25rem 0 0 0;">
+                            <i class="fas fa-circle" style="color: var(--success); font-size: 0.5rem;"></i>
+                            <span id="monitoring-last-update" style="margin-left: 0.5rem;">Update terakhir:
+                                --:--:--</span>
+                        </p>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                        <button class="btn btn-secondary" onclick="setMonitoringDateToday()"
+                            style="padding: 0.5rem 1rem;">
+                            Hari Ini
+                        </button>
+                        <button class="btn btn-secondary" onclick="setMonitoringDateYesterday()"
+                            style="padding: 0.5rem 1rem;">
+                            Kemarin
+                        </button>
+                        <input type="date" id="monitoring-date-filter" class="form-control"
+                            style="padding: 0.5rem 1rem;">
+                        <button class="btn btn-primary" onclick="loadMonitoringData()" style="padding: 0.5rem 1rem;">
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Compact Stats Overview -->
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+                    <div class="stat-card" style="padding: 1.25rem; text-align: center;">
+                        <div class="stat-value" id="total-accounts"
+                            style="font-size: 2rem; margin: 0 0 0.25rem 0; font-weight: 700;">0</div>
+                        <div class="stat-label" style="font-size: 0.85rem; color: var(--muted);">Total Akun</div>
+                    </div>
+                    <div class="stat-card" style="padding: 1.25rem; text-align: center;">
+                        <div class="stat-value" id="success-count"
+                            style="font-size: 2rem; margin: 0 0 0.25rem 0; font-weight: 700;">0</div>
+                        <div class="stat-label" style="font-size: 0.85rem; color: var(--muted);">Berhasil</div>
+                    </div>
+                    <div class="stat-card" style="padding: 1.25rem; text-align: center;">
+                        <div class="stat-value" id="failed-count"
+                            style="font-size: 2rem; margin: 0 0 0.25rem 0; font-weight: 700;">0</div>
+                        <div class="stat-label" style="font-size: 0.85rem; color: var(--muted);">Gagal</div>
+                    </div>
+                    <div class="stat-card" style="padding: 1.25rem; text-align: center;">
+                        <div class="stat-value" id="metric-success-rate"
+                            style="font-size: 2rem; margin: 0 0 0.25rem 0; font-weight: 700;">0%</div>
+                        <div class="stat-label" style="font-size: 0.85rem; color: var(--muted);">Tingkat Keberhasilan
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stock Movement Metrics -->
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+                    <div class="card" style="padding: 1.25rem; text-align: center;">
+                        <div style="font-size: 0.85rem; color: var(--muted); margin-bottom: 0.5rem;">Stok Hari Ini</div>
+                        <div id="metric-stock-today"
+                            style="font-size: 2rem; font-weight: 700; color: var(--text-main);">0</div>
+                    </div>
+                    <div class="card" style="padding: 1.25rem; text-align: center;">
+                        <div style="font-size: 0.85rem; color: var(--muted); margin-bottom: 0.5rem;">Stok Kemarin</div>
+                        <div id="metric-stock-yesterday"
+                            style="font-size: 2rem; font-weight: 700; color: var(--text-main);">0</div>
+                    </div>
+                    <div class="card" style="padding: 1.25rem; text-align: center;">
+                        <div style="font-size: 0.85rem; color: var(--muted); margin-bottom: 0.5rem;">Pergerakan Stok
+                        </div>
+                        <div id="metric-stock-movement"
+                            style="font-size: 2rem; font-weight: 700; color: var(--text-main);">0</div>
+                    </div>
+                    <div class="card" style="padding: 1.25rem; text-align: center;">
+                        <div style="font-size: 0.85rem; color: var(--muted); margin-bottom: 0.5rem;">Penjualan Kemarin
+                        </div>
+                        <div id="metric-actual-sales"
+                            style="font-size: 2rem; font-weight: 700; color: var(--text-main);">0</div>
+                    </div>
+                    <div class="card" style="padding: 1.25rem; text-align: center;">
+                        <div style="font-size: 0.85rem; color: var(--muted); margin-bottom: 0.5rem;">Total Penjualan
+                        </div>
+                        <div id="metric-total-sales"
+                            style="font-size: 2rem; font-weight: 700; color: var(--text-main);">0</div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="card">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3 style="font-size: 1.1rem; font-weight: 600; margin: 0; color: var(--text-main);">
+                            <i class="fas fa-clock-rotate-left" style="color: var(--primary);"></i> Aktivitas Terbaru
+                        </h3>
+                        <span style="font-size: 0.85rem; color: var(--muted);">
+                            <span id="monitoring-total-records">0</span> total data
+                        </span>
+                    </div>
+
+                    <!-- Modern Table -->
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: separate; border-spacing: 0;">
+                            <thead>
+                                <tr
+                                    style="background: linear-gradient(135deg, #11b0f2 0%, #0891d1 100%); color: white;">
+                                    <th
+                                        style="padding: 12px 16px; text-align: left; font-weight: 600; font-size: 0.85rem; border-top-left-radius: 8px;">
+                                        Waktu</th>
+                                    <th
+                                        style="padding: 12px 16px; text-align: left; font-weight: 600; font-size: 0.85rem;">
+                                        Nama Pangkalan</th>
+                                    <th
+                                        style="padding: 12px 16px; text-align: center; font-weight: 600; font-size: 0.85rem;">
+                                        Stok</th>
+                                    <th
+                                        style="padding: 12px 16px; text-align: center; font-weight: 600; font-size: 0.85rem;">
+                                        Terjual</th>
+                                    <th
+                                        style="padding: 12px 16px; text-align: center; font-weight: 600; font-size: 0.85rem; border-top-right-radius: 8px;">
+                                        Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="monitoring-table-body" style="background: white;">
+                                <tr>
+                                    <td colspan="5" style="padding: 3rem; text-align: center; color: var(--muted);">
+                                        <i class="fas fa-inbox"
+                                            style="font-size: 3rem; margin-bottom: 1rem; display: block; opacity: 0.3;"></i>
+                                        <p style="margin: 0; font-size: 1rem;">Belum ada data aktivitas</p>
+                                        <p style="margin: 0.5rem 0 0 0; font-size: 0.85rem;">Klik tombol
+                                            <strong>Refresh</strong> untuk memuat data</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div id="monitoring-pagination"
+                        style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                        <span style="font-size: 0.85rem; color: var(--muted);">
+                            Menampilkan <span id="monitoring-page-info">0-0 dari 0</span> data
+                        </span>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn btn-secondary text-sm" onclick="previousMonitoringPage()"
+                                id="monitoring-prev-btn" disabled>
+                                <i class="fas fa-chevron-left"></i> Sebelumnya
+                            </button>
+                            <button class="btn btn-secondary text-sm" onclick="nextMonitoringPage()"
+                                id="monitoring-next-btn" disabled>
+                                Selanjutnya <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <!-- SETTINGS PAGE -->
             <section id="settings-page" class="page-section">
                 <!-- Page Header -->
@@ -394,6 +532,104 @@
                     <p class="settings-subtitle">
                         Kelola preferensi dan konfigurasi aplikasi Anda
                     </p>
+                </div>
+
+                <!-- Add Account Form -->
+                <div class="card settings-card-spacing">
+                    <div
+                        style="padding: 1.5rem; background: linear-gradient(135deg, #11b0f2 0%, #0891d1 100%); border-radius: 12px 12px 0 0; margin: -1px -1px 0 -1px;">
+                        <h3 style="color: white; margin: 0; font-size: 1.3rem; font-weight: 600;">
+                            <i class="fas fa-user-plus"></i> Tambah Akun Pangkalan
+                        </h3>
+                        <p style="color: rgba(255,255,255,0.9); margin: 0.5rem 0 0 0; font-size: 0.9rem;">
+                            Daftarkan akun pangkalan baru ke sistem
+                        </p>
+                    </div>
+
+                    <form id="add-account-form" onsubmit="handleAddAccount(event)" style="padding: 2rem;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                            <!-- Nama Field -->
+                            <div style="grid-column: 1 / -1;">
+                                <label for="new-nama"
+                                    style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; font-weight: 600; color: var(--text-main);">
+                                    <div
+                                        style="width: 32px; height: 32px; background: linear-gradient(135deg, #11b0f2 0%, #0891d1 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-store" style="color: white; font-size: 0.9rem;"></i>
+                                    </div>
+                                    Nama Pangkalan
+                                </label>
+                                <input type="text" id="new-nama" class="form-control"
+                                    placeholder="Contoh: Pangkalan Budi Sentosa" required
+                                    style="width: 100%; padding: 0.75rem; font-size: 1rem;" />
+                            </div>
+
+                            <!-- Pangkalan ID Field -->
+                            <div>
+                                <label for="new-pangkalan-id"
+                                    style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; font-weight: 600; color: var(--text-main);">
+                                    <div
+                                        style="width: 32px; height: 32px; background: linear-gradient(135deg, #11b0f2 0%, #0891d1 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-id-card" style="color: white; font-size: 0.9rem;"></i>
+                                    </div>
+                                    Pangkalan ID
+                                </label>
+                                <input type="text" id="new-pangkalan-id" class="form-control"
+                                    placeholder="MOY001 atau 795955834624041" required
+                                    style="width: 100%; padding: 0.75rem;" />
+                                <small
+                                    style="color: var(--muted); font-size: 0.8rem; display: block; margin-top: 0.25rem;">ID
+                                    unik pangkalan</small>
+                            </div>
+
+                            <!-- Username Field -->
+                            <div>
+                                <label for="new-username"
+                                    style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; font-weight: 600; color: var(--text-main);">
+                                    <div
+                                        style="width: 32px; height: 32px; background: linear-gradient(135deg, #11b0f2 0%, #0891d1 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-envelope" style="color: white; font-size: 0.9rem;"></i>
+                                    </div>
+                                    Username Login
+                                </label>
+                                <input type="text" id="new-username" class="form-control"
+                                    placeholder="merchant@email.com" required style="width: 100%; padding: 0.75rem;" />
+                                <small
+                                    style="color: var(--muted); font-size: 0.8rem; display: block; margin-top: 0.25rem;">Email
+                                    atau nomor HP</small>
+                            </div>
+
+                            <!-- PIN Field -->
+                            <div>
+                                <label for="new-pin"
+                                    style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; font-weight: 600; color: var(--text-main);">
+                                    <div
+                                        style="width: 32px; height: 32px; background: linear-gradient(135deg, #e9252f 0%, #c91e28 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-key" style="color: white; font-size: 0.9rem;"></i>
+                                    </div>
+                                    PIN Login
+                                </label>
+                                <input type="text" id="new-pin" class="form-control" placeholder="123456" required
+                                    pattern="[0-9]{4,8}" maxlength="8" style="width: 100%; padding: 0.75rem;" />
+                                <small
+                                    style="color: var(--muted); font-size: 0.8rem; display: block; margin-top: 0.25rem;">4-8
+                                    digit angka</small>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <div
+                                style="grid-column: 1 / -1; display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+                                <button type="button" class="btn btn-secondary"
+                                    onclick="document.getElementById('add-account-form').reset()"
+                                    style="padding: 0.75rem 1.5rem;">
+                                    <i class="fas fa-undo"></i> Reset Form
+                                </button>
+                                <button type="submit" class="btn btn-primary" id="add-account-submit-btn"
+                                    style="padding: 0.75rem 2rem; background: linear-gradient(135deg, #11b0f2 0%, #0891d1 100%); border: none;">
+                                    <i class="fas fa-plus-circle"></i> Tambah Akun
+                                </button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
 
                 <!-- Browser Settings -->
@@ -457,24 +693,8 @@
                                     class="btn btn-secondary btn-sm settings-delay-button">
                                     Normal (2.0s)
                                 </button>
-                                <button onclick="document.getElementById('delay-input').value = '5.0'"
-                                    class="btn btn-secondary btn-sm settings-delay-button">
-                                    Aman (5.0s)
-                                </button>
+                                <button onclick="document.getElementById('delay-input').value = '5.0'" visual. </p>
                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Info Box -->
-                <div class="settings-info-box">
-                    <p class="settings-info-text">
-                        <strong>Tips:</strong> Gunakan Headless Mode untuk
-                        performa maksimal. Jika mengalami error, coba
-                        nonaktifkan untuk melihat proses browser secara
-                        visual.
-                    </p>
-                </div>
             </section>
 
             <!-- ABOUT PAGE -->
@@ -487,75 +707,81 @@
                         <div class="mb-6">
                             <h3 class="text-lg font-bold text-main mb-2">Apa itu SnapFlux?</h3>
                             <p>
-                                SnapFlux adalah sistem otomasi cerdas yang dirancang khusus untuk PT.
-                                MOYVERONIKA guna
-                                mengelola dan memantau data pangkalan (MAP) secara efisien. Aplikasi ini
-                                menggantikan
-                                proses manual yang memakan waktu dengan solusi otomatis yang cepat dan
-                                akurat.
+                                SnapFlux adalah sistem otomasi cerdas berbasis cloud yang dirancang untuk <strong>PT.
+                                    MOYVERONIKA</strong> dan <strong>PT. LORITO</strong> dalam mengelola dan memantau
+                                data pangkalan LPG (MAP) secara efisien dan real-time. Aplikasi ini menggantikan proses
+                                manual yang memakan waktu dengan solusi otomatis yang cepat, akurat, dan terorganisir
+                                dengan baik.
                             </p>
                         </div>
 
                         <div class="mb-6">
                             <h3 class="text-lg font-bold text-main mb-2">Masalah yang Diatasi</h3>
                             <ul class="list-disc pl-5 space-y-1">
-                                <li>Banyak pangkalan dikelola oleh orang tua yang kurang terbiasa dengan
-                                    teknologi.</li>
-                                <li>Kualitas jaringan sering lambat, sehingga akses website memakan waktu.
-                                </li>
-                                <li>Proses input dan pengecekan harus dilakukan satu per satu.</li>
-                                <li>Setiap akun membutuhkan waktu 1 menit atau lebih untuk login, cek stok,
-                                    mencatat,
+                                <li>Banyak pangkalan dikelola oleh orang tua yang kurang terbiasa dengan teknologi.</li>
+                                <li>Kualitas jaringan sering lambat, sehingga akses website memakan waktu.</li>
+                                <li>Proses input dan pengecekan harus dilakukan satu per satu secara manual.</li>
+                                <li>Setiap akun membutuhkan waktu 1 menit atau lebih untuk login, cek stok, mencatat,
                                     dan logout.</li>
-                                <li>Untuk 100 akun, waktu pengecekan total bisa mencapai 2 jam lebih setiap
-                                    hari.</li>
-                                <li>Ketika pangkalan lupa input atau inputnya tidak lengkap, admin harus
-                                    menghubungi
-                                    ulang satu per satu.</li>
-                                <li>Jika stok tidak diinput, perusahaan tidak bisa memonitor tingkat
-                                    ketersediaan barang
-                                    secara akurat, dan gas tidak dimasukan ke pangkalan kalau stok belum
-                                    kosong.</li>
+                                <li>Untuk 100+ akun, waktu pengecekan total bisa mencapai 2 jam lebih setiap hari.</li>
+                                <li>Data tidak tersentralisasi dan sulit dianalisis untuk pengambilan keputusan.</li>
+                                <li>Tingkat kesalahan input manual yang tinggi.</li>
+                                <li>Tidak ada sistem monitoring real-time untuk pergerakan stok.</li>
                             </ul>
                         </div>
 
                         <div class="mb-6">
-                            <h3 class="text-lg font-bold text-main mb-2">Tujuan Pengembangan</h3>
+                            <h3 class="text-lg font-bold text-main mb-2">Fitur Utama</h3>
                             <ul class="list-disc pl-5 space-y-1">
-                                <li>Mengambil data otomatis dari 100 akun dalam satu kali proses, tanpa
-                                    harus login
-                                    manual.</li>
-                                <li>Mempercepat waktu scraping dari 1 menit per akun menjadi < 15 detik per akun.</li>
-                                <li>Menghemat lebih dari 80% waktu operasional setiap hari.</li>
-                                <li>Mengurangi kesalahan input akibat proses manual.</li>
-                                <li>Memudahkan analisis stok dan input dengan data yang terkumpul secara
-                                    real-time.</li>
-                                <li>Mengirim notifikasi/pengingat untuk pangkalan yang belum melakukan
-                                    input, terutama
-                                    jika stok masih tinggi (manual lewat Whatsapp).</li>
-                                <li>Memberikan kemampuan bagi perusahaan untuk membantu input jika pangkalan
-                                    terkendala
-                                    jaringan.</li>
-                                <li>Menghilangkan kebutuhan pindah-pindah tab, login satu-satu, dan
-                                    pencatatan excel
-                                    manual.</li>
-                                <li>Memberikan sistem monitoring yang stabil dan dapat dijalankan oleh siapa
-                                    saja.</li>
+                                <li><strong>Login & Role-Based Access Control (RBAC):</strong> Sistem autentikasi aman
+                                    dengan kontrol akses berbasis perusahaan.</li>
+                                <li><strong>Multi-Company Support:</strong> Mendukung pengelolaan data terpisah untuk
+                                    PT. Moyveronika dan PT. Lorito.</li>
+                                <li><strong>Otomasi Browser:</strong> Mengambil data otomatis dari 100+ akun dalam satu
+                                    kali proses (< 15 detik per akun).</li>
+                                <li><strong>Cloud Database (Supabase):</strong> Penyimpanan data terpusat, aman, dan
+                                    dapat diakses real-time.</li>
+                                <li><strong>Monitoring Real-time:</strong> Dashboard analitik untuk memantau stok,
+                                    penjualan, dan performa sistem.</li>
+                                <li><strong>Smart Resume:</strong> Otomatis melewati akun yang sudah dicek, menghemat
+                                    waktu hingga 50%.</li>
+                                <li><strong>Manajemen Akun:</strong> Tambah, edit, dan kelola akun pangkalan langsung
+                                    dari aplikasi.</li>
+                                <li><strong>Export Data:</strong> Laporan Excel terstruktur siap untuk analisis lebih
+                                    lanjut.</li>
+                                <li><strong>Stock Movement Tracking:</strong> Deteksi penjualan tidak tercatat
+                                    berdasarkan perubahan stok.</li>
                             </ul>
                         </div>
 
                         <div class="mb-6">
-                            <h3 class="text-lg font-bold text-main mb-2">Cara Kerja Singkat</h3>
+                            <h3 class="text-lg font-bold text-main mb-2">Manfaat</h3>
+                            <ul class="list-disc pl-5 space-y-1">
+                                <li>Menghemat lebih dari <strong>80% waktu operasional</strong> setiap hari.</li>
+                                <li>Mengurangi kesalahan input akibat proses manual hingga <strong>90%</strong>.</li>
+                                <li>Data real-time untuk pengambilan keputusan yang lebih cepat dan tepat.</li>
+                                <li>Monitoring pergerakan stok dan penjualan secara otomatis.</li>
+                                <li>Sistem terpusat yang dapat diakses oleh tim yang berwenang.</li>
+                                <li>Riwayat lengkap semua aktivitas untuk audit dan analisis.</li>
+                            </ul>
+                        </div>
+
+                        <div class="mb-6">
+                            <h3 class="text-lg font-bold text-main mb-2">Cara Kerja</h3>
                             <p>
-                                SnapFlux bekerja dengan mensimulasikan interaksi pengguna pada browser
-                                secara otomatis.
-                                Sistem akan login ke setiap akun pangkalan yang terdaftar, mengambil data
-                                stok dan
-                                penjualan terkini, melakukan input data jika diperlukan, dan menyimpan semua
-                                hasil ke
-                                dalam laporan Excel yang rapi. Semua proses ini berjalan di latar belakang
-                                (background)
-                                atau terlihat (visible) sesuai pengaturan Anda.
+                                SnapFlux bekerja dengan mensimulasikan interaksi pengguna pada browser secara otomatis
+                                menggunakan teknologi Playwright. Sistem akan:
+                            </p>
+                            <ol class="list-decimal pl-5 space-y-1 mt-2">
+                                <li>Login ke setiap akun pangkalan yang terdaftar</li>
+                                <li>Mengambil data stok dan penjualan terkini</li>
+                                <li>Menyimpan hasil ke database cloud (Supabase)</li>
+                                <li>Menampilkan data real-time di dashboard monitoring</li>
+                                <li>Generate laporan Excel untuk dokumentasi</li>
+                            </ol>
+                            <p class="mt-2">
+                                Semua proses berjalan di latar belakang (headless) atau terlihat (visible) sesuai
+                                pengaturan Anda, dengan dukungan <strong>Smart Resume</strong> untuk efisiensi maksimal.
                             </p>
                         </div>
 
@@ -564,22 +790,29 @@
                             <ul class="list-disc pl-5 space-y-1">
                                 <li><strong>Backend:</strong> Python (Core Logic, Data Processing)</li>
                                 <li><strong>Automation:</strong> Playwright (Browser Automation)</li>
-                                <li><strong>Frontend:</strong> HTML, CSS, JavaScript (User Interface)</li>
-                                <li><strong>Integration:</strong> Eel (Python-JS Bridge)</li>
+                                <li><strong>Database:</strong> Supabase (Cloud PostgreSQL)</li>
+                                <li><strong>Frontend:</strong> HTML, CSS, JavaScript (Modern UI)</li>
+                                <li><strong>Integration:</strong> Eel (Python-JavaScript Bridge)</li>
+                                <li><strong>Security:</strong> SHA256 Password Hashing, Role-Based Access Control</li>
                             </ul>
                         </div>
 
                         <div class="mb-6">
-                            <h3 class="text-lg font-bold text-main mb-2">Keamanan dan Batasan</h3>
+                            <h3 class="text-lg font-bold text-main mb-2">Keamanan dan Privasi</h3>
                             <p>
-                                Aplikasi ini dikembangkan secara internal khusus untuk operasional
-                                <strong>PT
-                                    MOYVERONIKA</strong>. Data kredensial disimpan secara lokal di komputer
-                                pengguna dan
-                                tidak dikirim ke server eksternal manapun selain server resmi MAP saat
-                                proses login.
-                                Penggunaan aplikasi ini terbatas pada karyawan yang berwenang.
+                                Aplikasi ini dikembangkan secara internal untuk operasional <strong>PT.
+                                    MOYVERONIKA</strong> dan <strong>PT. LORITO</strong> dengan standar keamanan tinggi:
                             </p>
+                            <ul class="list-disc pl-5 space-y-1 mt-2">
+                                <li>Password di-hash menggunakan <strong>SHA256</strong> sebelum disimpan.</li>
+                                <li>Data tersimpan aman di <strong>Supabase Cloud Database</strong> dengan enkripsi.
+                                </li>
+                                <li>Akses dibatasi berdasarkan perusahaan menggunakan <strong>Role-Based Access Control
+                                        (RBAC)</strong>.</li>
+                                <li>Kredensial login MAP hanya digunakan saat proses scraping ke server resmi.</li>
+                                <li>Setiap aktivitas tercatat dalam log untuk audit trail.</li>
+                                <li>Penggunaan aplikasi terbatas pada karyawan yang berwenang.</li>
+                            </ul>
                         </div>
                     </div>
                 </div>

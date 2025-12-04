@@ -96,6 +96,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   window.clearAllSessions = clearAllSessions;
   window.loadFromDatabase = loadFromDatabase;
   window.loadUnprocessedAccounts = loadUnprocessedAccounts;
+  window.loadMonitoringData = loadMonitoringData;
+  window.clearMonitoringFilter = clearMonitoringFilter;
+  window.setMonitoringDateToday = setMonitoringDateToday;
+  window.setMonitoringDateYesterday = setMonitoringDateYesterday;
+  window.handleAddAccount = handleAddAccount;
+  window.nextMonitoringPage = nextMonitoringPage;
+  window.previousMonitoringPage = previousMonitoringPage;
 
   console.log("✅ All functions registered globally");
 
@@ -138,9 +145,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 function checkSession() {
-  const user = localStorage.getItem('snapflux_user');
+  const user = localStorage.getItem("snapflux_user");
   if (!user) {
-    window.location.href = 'login.html';
+    window.location.href = "login.html";
     return;
   }
 
@@ -148,31 +155,34 @@ function checkSession() {
   try {
     const userData = JSON.parse(user);
     // Update UI with user info
-    const pageSubtitle = document.getElementById('page-subtitle');
+    const pageSubtitle = document.getElementById("page-subtitle");
     if (pageSubtitle) {
-      pageSubtitle.innerHTML = `Pantau performa otomasi secara realtime <br> <span style="font-size: 0.8rem; color: #0eb0f2;">Logged in as: ${userData.full_name || userData.username} (${userData.company_access})</span>`;
+      pageSubtitle.innerHTML = `Pantau performa otomasi secara realtime <br> <span style="font-size: 0.8rem; color: #0eb0f2;">Masuk sebagai: ${userData.full_name || userData.username} (${userData.company_name || "N/A"})</span>`;
     }
 
     // Add logout button to sidebar footer
-    const sidebarFooter = document.querySelector('.sidebar-footer');
+    const sidebarFooter = document.querySelector(".sidebar-footer");
     if (sidebarFooter) {
-      const logoutBtn = document.createElement('div');
-      logoutBtn.className = 'flex items-center gap-2 text-sm text-muted cursor-pointer hover:text-red-500 transition-colors mt-2';
-      logoutBtn.innerHTML = '<i class="fas fa-sign-out-alt"></i> <span>Keluar</span>';
+      const logoutBtn = document.createElement("div");
+      logoutBtn.className =
+        "flex items-center gap-2 text-sm text-muted cursor-pointer hover:text-red-500 transition-colors mt-2";
+      logoutBtn.innerHTML =
+        '<i class="fas fa-sign-out-alt"></i> <span>Keluar</span>';
       logoutBtn.onclick = logout;
       sidebarFooter.appendChild(logoutBtn);
     }
-
   } catch (e) {
     console.error("Error parsing user data", e);
     logout();
   }
+
+  console.log("[DEBUG] Current user session:", userStr);
 }
 
 function logout() {
-  localStorage.removeItem('snapflux_user');
-  localStorage.removeItem('snapflux_token');
-  window.location.href = 'login.html';
+  localStorage.removeItem("snapflux_user");
+  localStorage.removeItem("snapflux_token");
+  window.location.href = "login.html";
 }
 
 // ============================================
@@ -187,7 +197,9 @@ function toggleSidebar() {
   // Update toggle button icon
   const toggleBtn = document.querySelector(".sidebar-toggle-btn i");
   if (toggleBtn) {
-    toggleBtn.className = isCollapsed ? "fas fa-chevron-right" : "fas fa-chevron-left";
+    toggleBtn.className = isCollapsed
+      ? "fas fa-chevron-right"
+      : "fas fa-chevron-left";
   }
 }
 
@@ -296,6 +308,44 @@ function showPage(pageName) {
   console.log("Page name:", pageName);
 
   try {
+    // Load monitoring data if navigating to monitoring page
+    if (pageName === "monitoring") {
+      // Defer loading until page is visible
+      setTimeout(() => {
+        loadMonitoringData();
+        startMonitoringAutoRefresh();
+      }, 100);
+    } else {
+      // Stop auto-refresh when leaving monitoring page
+      stopMonitoringAutoRefresh();
+    }
+
+    // Toggle footer margin based on page
+    const footer = document.querySelector(".footer-main");
+    if (footer) {
+      if (pageName === "dashboard") {
+        footer.style.marginTop = "0";
+      } else {
+        footer.style.marginTop = "2rem";
+      }
+    }
+
+    // Control dashboard fixed backgrounds visibility
+    const dashboardBg = document.querySelectorAll(
+      '#dashboard-page > div > div[style*="position: fixed"]',
+    );
+    if (pageName === "dashboard") {
+      dashboardBg.forEach((bg) => {
+        bg.style.display = "block";
+        bg.style.visibility = "visible";
+      });
+    } else {
+      dashboardBg.forEach((bg) => {
+        bg.style.display = "none";
+        bg.style.visibility = "hidden";
+      });
+    }
+
     // Hide all pages
     const allSections = document.querySelectorAll(".page-section");
     console.log("Found sections:", allSections.length);
@@ -340,6 +390,7 @@ function showPage(pageName) {
       dashboard: "Dasbor",
       automation: "Otomasi",
       results: "Hasil",
+      monitoring: "Monitoring",
       settings: "Pengaturan",
       about: "Tentang",
     };
@@ -357,6 +408,7 @@ function showPage(pageName) {
       dashboard: "Dasbor",
       automation: "Kontrol Otomasi",
       results: "Hasil Export",
+      monitoring: "Monitoring & Riwayat",
       settings: "Pengaturan",
       about: "Tentang SnapFlux",
     };
@@ -467,21 +519,43 @@ async function loadFromDatabase() {
     }
 
     // Get user company access
-    const userStr = localStorage.getItem('snapflux_user');
-    let companyAccess = null;
+    const userStr = localStorage.getItem("snapflux_user");
+    console.log("[DEBUG] userStr from localStorage:", userStr);
+
+    let companyId = null;
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
-        companyAccess = user.company_access;
+        console.log("[DEBUG] Parsed user object:", user);
+        companyId = user.company_id;
+        console.log("[DEBUG] Extracted company_id:", companyId);
+        console.log("[DEBUG] company_id type:", typeof companyId);
       } catch (e) {
         console.error("Error parsing user for company access", e);
       }
+    } else {
+      console.warn("[DEBUG] No user data in localStorage!");
     }
 
-    const result = await eel.load_accounts_from_supabase(companyAccess)();
+    console.log(
+      "[DEBUG] Calling load_accounts_from_supabase with company_id:",
+      companyId,
+    );
+    console.log(
+      "[DEBUG] Calling load_accounts_from_supabase with company_id:",
+      companyId,
+    );
+    const result = await eel.load_accounts_from_supabase(companyId)();
+    console.log("[DEBUG] Result from backend:", result);
 
     if (result.success) {
       accounts = result.accounts;
+      // Sort accounts alphabetically by nama (A-Z)
+      accounts.sort((a, b) => {
+        const nameA = (a.nama || "").toUpperCase();
+        const nameB = (b.nama || "").toUpperCase();
+        return nameA.localeCompare(nameB);
+      });
       renderAccounts();
       updateStatistics();
 
@@ -491,7 +565,10 @@ async function loadFromDatabase() {
       logMessage(`${result.message}`, "success");
       if (label) label.textContent = "Data dari Database";
 
-      showAlert(`Berhasil memuat ${result.count} akun dari Database`, "success");
+      showAlert(
+        `Berhasil memuat ${result.count} akun dari Database`,
+        "success",
+      );
     } else {
       showAlert(result.message, "error");
       logMessage(`${result.message}`, "error");
@@ -518,21 +595,33 @@ async function loadUnprocessedAccounts() {
     }
 
     // Get user company access
-    const userStr = localStorage.getItem('snapflux_user');
-    let companyAccess = null;
+    const userStr = localStorage.getItem("snapflux_user");
+    console.log("[DEBUG loadUnprocessed] userStr:", userStr);
+
+    let companyId = null;
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
-        companyAccess = user.company_access;
+        console.log("[DEBUG loadUnprocessed] Parsed user:", user);
+        companyId = user.company_id;
+        console.log("[DEBUG loadUnprocessed] company_id:", companyId);
       } catch (e) {
         console.error("Error parsing user for company access", e);
       }
     }
 
-    const result = await eel.load_unprocessed_accounts_only(companyAccess)();
+    console.log("[DEBUG loadUnprocessed] Calling with company_id:", companyId);
+    const result = await eel.load_unprocessed_accounts_only(companyId)();
+    console.log("[DEBUG loadUnprocessed] Result:", result);
 
     if (result.success) {
       accounts = result.accounts;
+      // Sort accounts alphabetically by nama (A-Z)
+      accounts.sort((a, b) => {
+        const nameA = (a.nama || "").toUpperCase();
+        const nameB = (b.nama || "").toUpperCase();
+        return nameA.localeCompare(nameB);
+      });
       renderAccounts();
       updateStatistics();
       updateDashboardMetrics();
@@ -540,7 +629,10 @@ async function loadUnprocessedAccounts() {
       logMessage(`${result.message}`, "success");
       if (label) label.textContent = "Data Belum Dicek Hari Ini";
 
-      showAlert(`Berhasil memuat ${result.count} akun yang belum dicek`, "success");
+      showAlert(
+        `Berhasil memuat ${result.count} akun yang belum dicek`,
+        "success",
+      );
     } else {
       showAlert(result.message, "info");
       logMessage(`${result.message}`, "info");
@@ -553,11 +645,532 @@ async function loadUnprocessedAccounts() {
 }
 
 // ============================================
+// MONITORING DATA FUNCTIONS
+// ============================================
+
+let monitoringRefreshInterval = null;
+let isLoadingMonitoring = false;
+
+function startMonitoringAutoRefresh() {
+  // Clear any existing interval
+  stopMonitoringAutoRefresh();
+
+  // Refresh every 10 seconds
+  monitoringRefreshInterval = setInterval(() => {
+    if (!isLoadingMonitoring) {
+      // Refresh both metrics and data
+      refreshMonitoringMetrics();
+      loadMonitoringData(true); // true = silent refresh (no loading message)
+    }
+  }, 10000);
+
+  console.log("✅ Monitoring auto-refresh started (every 10s)");
+}
+
+function stopMonitoringAutoRefresh() {
+  if (monitoringRefreshInterval) {
+    clearInterval(monitoringRefreshInterval);
+    monitoringRefreshInterval = null;
+    console.log("⏹️ Monitoring auto-refresh stopped");
+  }
+}
+
+async function loadMonitoringData(silentRefresh = false) {
+  if (isLoadingMonitoring) {
+    console.log("⏭️ Skipping load - already loading");
+    return;
+  }
+
+  isLoadingMonitoring = true;
+
+  try {
+    if (!silentRefresh) {
+      logMessage("Memuat data monitoring...", "info");
+    }
+
+    // Update timestamp
+    updateMonitoringTimestamp();
+
+    // Get user company access
+    const userStr = localStorage.getItem("snapflux_user");
+    console.log("[DEBUG Monitoring] userStr:", userStr);
+
+    let companyId = null;
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        console.log("[DEBUG Monitoring] Parsed user:", user);
+        companyId = user.company_id;
+        console.log("[DEBUG Monitoring] company_id:", companyId);
+      } catch (e) {
+        console.error("Error parsing user for company access", e);
+      }
+    }
+
+    // Get date filter if set
+    const dateFilterEl = document.getElementById("monitoring-date-filter");
+    const dateFilter = dateFilterEl ? dateFilterEl.value : null;
+
+    console.log(
+      "[DEBUG Monitoring] Calling with company_id:",
+      companyId,
+      "dateFilter:",
+      dateFilter,
+    );
+    // Call backend
+    const result = await eel.get_monitoring_results(
+      companyId,
+      100,
+      dateFilter,
+    )();
+    console.log("[DEBUG Monitoring] Result:", result);
+
+    if (result.success) {
+      const results = result.results;
+
+      // Update stats
+      const totalRecordsEl = document.getElementById(
+        "monitoring-total-records",
+      );
+      const successCountEl = document.getElementById(
+        "monitoring-success-count",
+      );
+      const failedCountEl = document.getElementById("monitoring-failed-count");
+      const totalSalesEl = document.getElementById("monitoring-total-sales");
+
+      if (totalRecordsEl) totalRecordsEl.textContent = results.length;
+
+      // Calculate stats
+      let successCount = 0;
+      let failedCount = 0;
+      let totalSales = 0;
+
+      results.forEach((item) => {
+        const status = item.status || "";
+        if (
+          status.includes("Ada Penjualan") ||
+          status.includes("Tidak Ada Penjualan")
+        ) {
+          successCount++;
+        } else {
+          failedCount++;
+        }
+
+        // Parse sales
+        try {
+          const salesStr = String(item.tabung_terjual || "0")
+            .replace(" Tabung", "")
+            .replace(",", "");
+          totalSales += parseInt(salesStr) || 0;
+        } catch (e) {
+          // Ignore parse error
+        }
+      });
+
+      if (successCountEl) successCountEl.textContent = successCount;
+      if (failedCountEl) failedCountEl.textContent = failedCount;
+      if (totalSalesEl) totalSalesEl.textContent = totalSales;
+
+      // Render table
+      renderMonitoringTable(results);
+
+      if (!silentRefresh) {
+        logMessage(
+          `Berhasil memuat ${results.length} data monitoring`,
+          "success",
+        );
+      }
+
+      // Update timestamp after successful load
+      updateMonitoringTimestamp();
+    } else {
+      if (!silentRefresh) {
+        showAlert(result.message, "error");
+        logMessage(`Gagal memuat data monitoring: ${result.message}`, "error");
+      }
+    }
+  } catch (error) {
+    console.error("Error loading monitoring data:", error);
+    if (!silentRefresh) {
+      logMessage("Gagal memuat data monitoring", "error");
+      showAlert("Terjadi kesalahan: " + error, "error");
+    }
+  } finally {
+    isLoadingMonitoring = false;
+  }
+}
+
+// Cache untuk menyimpan data sebelumnya
+let previousMonitoringData = [];
+let currentMonitoringPage = 1;
+let monitoringItemsPerPage = 10;
+let allMonitoringResults = [];
+
+function renderMonitoringTable(results) {
+  const tbody = document.getElementById("monitoring-table-body");
+  if (!tbody) return;
+
+  // Store all results
+  allMonitoringResults = results;
+
+  // Sort by created_at DESC (terbaru di atas)
+  allMonitoringResults.sort((a, b) => {
+    const dateA = new Date(a.created_at || 0);
+    const dateB = new Date(b.created_at || 0);
+    return dateB - dateA; // Descending order
+  });
+
+  if (allMonitoringResults.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" style="padding: 3rem; text-align: center; color: var(--muted);">
+          <i class="fas fa-inbox" style="font-size: 3rem; margin-bottom: 1rem; display: block; opacity: 0.3;"></i>
+          <p style="margin: 0; font-size: 1rem;">Tidak ada data untuk filter ini</p>
+        </td>
+      </tr>
+    `;
+    previousMonitoringData = [];
+    updateMonitoringPagination();
+    return;
+  }
+
+  // Calculate pagination
+  const totalPages = Math.ceil(
+    allMonitoringResults.length / monitoringItemsPerPage,
+  );
+  const startIndex = (currentMonitoringPage - 1) * monitoringItemsPerPage;
+  const endIndex = Math.min(
+    startIndex + monitoringItemsPerPage,
+    allMonitoringResults.length,
+  );
+  const paginatedResults = allMonitoringResults.slice(startIndex, endIndex);
+
+  // Render paginated results
+  const rows = paginatedResults
+    .map((item, index) => createMonitoringRow(item, startIndex + index))
+    .join("");
+  tbody.innerHTML = rows;
+
+  // Update pagination info and buttons
+  updateMonitoringPagination();
+
+  // Update cache
+  previousMonitoringData = JSON.parse(JSON.stringify(allMonitoringResults));
+}
+
+function createMonitoringRow(item, index) {
+  const createdAt = item.created_at ? new Date(item.created_at) : null;
+  const timeStr = createdAt
+    ? createdAt.toLocaleTimeString("id-ID", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      })
+    : "-";
+  const dateStr = createdAt
+    ? createdAt.toLocaleDateString("id-ID", {
+        day: "2-digit",
+        month: "short",
+      })
+    : "-";
+
+  const statusIcon = (item.status || "").includes("Ada Penjualan")
+    ? '<i class="fas fa-check-circle"></i>'
+    : (item.status || "").includes("Tidak Ada Penjualan")
+      ? '<i class="fas fa-info-circle"></i>'
+      : '<i class="fas fa-times-circle"></i>';
+
+  const statusText = (item.status || "").includes("Ada Penjualan")
+    ? "Berhasil"
+    : (item.status || "").includes("Tidak Ada Penjualan")
+      ? "Tidak Ada Penjualan"
+      : "Gagal";
+
+  const rowId = `monitoring-row-${item.id || index}`;
+
+  return `
+    <tr id="${rowId}" style="border-bottom: 1px solid #f0f0f0; transition: all 0.2s ease;">
+      <td style="padding: 16px; font-size: 0.85rem; color: var(--muted);">
+        <div style="display: flex; flex-direction: column;">
+          <span style="font-weight: 600; color: var(--text-main);">${timeStr}</span>
+          <span style="font-size: 0.75rem;">${dateStr}</span>
+        </div>
+      </td>
+      <td style="padding: 16px;">
+        <div style="display: flex; flex-direction: column;">
+          <span style="font-weight: 600; color: var(--text-main);">${item.nama || "-"}</span>
+          <span style="font-size: 0.75rem; color: var(--muted); font-family: monospace;">${item.pangkalan_id || "-"}</span>
+        </div>
+      </td>
+      <td style="padding: 16px; text-align: center;">
+        <span style="font-weight: 600; font-size: 0.9rem; color: var(--text-main);">
+          ${item.stok || "0"}
+        </span>
+      </td>
+      <td style="padding: 16px; text-align: center;">
+        <span style="font-weight: 600; font-size: 0.9rem; color: var(--text-main);">
+          ${item.tabung_terjual || "0"}
+        </span>
+      </td>
+      <td style="padding: 16px; text-align: center;">
+        <span style="display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 500; font-size: 0.85rem; color: var(--text-main);">
+          ${statusIcon}
+          ${statusText}
+        </span>
+      </td>
+    </tr>
+  `;
+}
+
+function updateMonitoringPagination() {
+  const total = allMonitoringResults.length;
+  const totalPages = Math.ceil(total / monitoringItemsPerPage);
+  const startIndex = (currentMonitoringPage - 1) * monitoringItemsPerPage;
+  const endIndex = Math.min(startIndex + monitoringItemsPerPage, total);
+
+  // Update page info
+  const pageInfo = document.getElementById("monitoring-page-info");
+  if (pageInfo) {
+    if (total === 0) {
+      pageInfo.textContent = "0-0 dari 0";
+    } else {
+      pageInfo.textContent = `${startIndex + 1}-${endIndex} dari ${total}`;
+    }
+  }
+
+  // Update total records badge
+  const totalRecords = document.getElementById("monitoring-total-records");
+  if (totalRecords) {
+    totalRecords.textContent = total;
+  }
+
+  // Update button states
+  const prevBtn = document.getElementById("monitoring-prev-btn");
+  const nextBtn = document.getElementById("monitoring-next-btn");
+
+  if (prevBtn) {
+    prevBtn.disabled = currentMonitoringPage <= 1;
+  }
+
+  if (nextBtn) {
+    nextBtn.disabled = currentMonitoringPage >= totalPages || total === 0;
+  }
+}
+
+function nextMonitoringPage() {
+  const totalPages = Math.ceil(
+    allMonitoringResults.length / monitoringItemsPerPage,
+  );
+  if (currentMonitoringPage < totalPages) {
+    currentMonitoringPage++;
+    renderMonitoringTable(allMonitoringResults);
+  }
+}
+
+function previousMonitoringPage() {
+  if (currentMonitoringPage > 1) {
+    currentMonitoringPage--;
+    renderMonitoringTable(allMonitoringResults);
+  }
+}
+
+function clearMonitoringFilter() {
+  const dateFilterEl = document.getElementById("monitoring-date-filter");
+  if (dateFilterEl) {
+    dateFilterEl.value = "";
+  }
+  currentMonitoringPage = 1; // Reset to first page
+  loadMonitoringData();
+}
+
+function setMonitoringDateToday() {
+  const dateFilterEl = document.getElementById("monitoring-date-filter");
+  if (dateFilterEl) {
+    const today = new Date();
+    const dateStr = today.toISOString().split("T")[0]; // Format: YYYY-MM-DD
+    dateFilterEl.value = dateStr;
+    currentMonitoringPage = 1; // Reset to first page
+    loadMonitoringData();
+  }
+}
+
+function setMonitoringDateYesterday() {
+  const dateFilterEl = document.getElementById("monitoring-date-filter");
+  if (dateFilterEl) {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const dateStr = yesterday.toISOString().split("T")[0]; // Format: YYYY-MM-DD
+    dateFilterEl.value = dateStr;
+    currentMonitoringPage = 1; // Reset to first page
+    loadMonitoringData();
+  }
+}
+
+function updateMonitoringTimestamp() {
+  const timestampEl = document.getElementById("monitoring-last-update");
+  if (timestampEl) {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString("id-ID", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+    timestampEl.textContent = `Diperbarui: ${timeStr}`;
+  }
+}
+
+// Auto-refresh dashboard metrics on monitoring page
+async function refreshMonitoringMetrics() {
+  try {
+    // Get user company access
+    const userStr = localStorage.getItem("snapflux_user");
+    let companyId = null;
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        companyId = user.company_id;
+      } catch (e) {
+        console.error("Error parsing user for company access", e);
+      }
+    }
+
+    // Get live stats with smooth update
+    const dbResult = await eel.get_dashboard_live_stats(companyId)();
+    if (dbResult.success) {
+      const dbStats = dbResult.stats;
+
+      // Update main stats with smooth transition
+      updateElementWithTransition("total-accounts", dbStats.total || 0);
+      updateElementWithTransition("success-count", dbStats.success || 0);
+      updateElementWithTransition("failed-count", dbStats.failed || 0);
+      updateElementWithTransition(
+        "metric-total-sales",
+        dbStats.total_sales || 0,
+      );
+      updateElementWithTransition(
+        "metric-total-stock",
+        dbStats.total_stock || 0,
+      );
+
+      // Update stock today
+      updateElementWithTransition(
+        "metric-stock-today",
+        dbStats.total_stock || 0,
+      );
+
+      // Calculate success rate
+      const successRate = document.getElementById("metric-success-rate");
+      if (successRate) {
+        const rate =
+          dbStats.total > 0
+            ? ((dbStats.success / dbStats.total) * 100).toFixed(1)
+            : 0;
+        updateElementWithTransition("metric-success-rate", `${rate}%`);
+      }
+    }
+
+    // Get stock movement stats
+    const movementResult = await eel.get_stock_movement_stats(companyId)();
+    if (movementResult.success) {
+      const movement = movementResult.movement;
+
+      updateElementWithTransition(
+        "metric-actual-sales",
+        movement.total_sales_yesterday || 0,
+      );
+    }
+
+    // Get stock yesterday from database
+    try {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split("T")[0];
+
+      const yesterdayStockResult = await eel.get_stock_summary(
+        companyId,
+        yesterdayStr,
+      )();
+
+      if (yesterdayStockResult.success) {
+        const yesterdayData = yesterdayStockResult.data;
+        const stockYesterday = yesterdayData.total_stock || 0;
+
+        updateElementWithTransition("metric-stock-yesterday", stockYesterday);
+
+        // Calculate stock movement
+        const stockToday = parseInt(
+          document.getElementById("metric-total-stock")?.textContent || "0",
+        );
+        const stockMovement = stockToday - stockYesterday;
+
+        updateElementWithTransition(
+          "metric-stock-movement",
+          stockMovement >= 0 ? `+${stockMovement}` : `${stockMovement}`,
+        );
+      }
+    } catch (e) {
+      console.error("Error fetching yesterday stock:", e);
+    }
+
+    // Get telemetry metrics for performance
+    const metrics = await eel.get_telemetry_metrics()();
+
+    updateElementWithTransition(
+      "metric-avg-time",
+      `${metrics.avg_processing_time || 0}s`,
+    );
+    updateElementWithTransition(
+      "metric-session-duration",
+      formatDuration(metrics.session_duration || 0),
+    );
+    updateElementWithTransition(
+      "metric-throughput",
+      `${(metrics.throughput || 0).toFixed(1)}/min`,
+    );
+
+    // Update timestamp
+    updateMonitoringTimestamp();
+  } catch (error) {
+    console.error("Error refreshing monitoring metrics:", error);
+  }
+}
+
+// Helper function untuk smooth update element
+function updateElementWithTransition(elementId, newValue) {
+  const element = document.getElementById(elementId);
+  if (!element) return;
+
+  const currentValue = element.textContent;
+  if (currentValue !== String(newValue)) {
+    // Add highlight effect
+    element.style.transition = "all 0.3s ease";
+    element.style.transform = "scale(1.05)";
+    element.style.color = "var(--primary)";
+
+    // Update value
+    element.textContent = newValue;
+
+    // Remove highlight
+    setTimeout(() => {
+      element.style.transform = "scale(1)";
+      element.style.color = "";
+    }, 300);
+  }
+}
+
+// ============================================
 // ACCOUNT RENDERING
 // ============================================
 
 function renderAccounts() {
   const container = document.getElementById("accounts-container");
+
+  // Sort accounts alphabetically by nama before rendering
+  accounts.sort((a, b) => {
+    const nameA = (a.nama || "").toUpperCase();
+    const nameB = (b.nama || "").toUpperCase();
+    return nameA.localeCompare(nameB);
+  });
 
   if (accounts.length === 0) {
     container.innerHTML = `
@@ -566,7 +1179,7 @@ function renderAccounts() {
                     <i class="fas fa-inbox"></i>
                 </div>
                 <p style="margin: 0">Belum ada akun dimuat</p>
-                <p style="font-size: 0.875rem; margin-top: 0.5rem">Load file Excel untuk memulai</p>
+                <p style="font-size: 0.875rem; margin-top: 0.5rem">Klik 'Muat dari Database' untuk memulai</p>
             </div>
         `;
     return;
@@ -591,7 +1204,7 @@ function renderAccounts() {
                     >
                     <div class="account-name truncate font-medium text-gray-700">${account.nama}</div>
                 </label>
-                
+
                 <div class="flex flex-col items-end shrink-0 gap-2">
                     <div id="status-badge-${account.id}" class="text-xs font-medium px-2 py-1 rounded bg-slate-100 text-slate-500">
                         Menunggu
@@ -838,7 +1451,8 @@ function resetAccountStatuses() {
 
     if (statusBadge) {
       statusBadge.textContent = "Menunggu";
-      statusBadge.className = "text-xs font-medium px-2 py-1 rounded bg-slate-100 text-slate-500 shrink-0";
+      statusBadge.className =
+        "text-xs font-medium px-2 py-1 rounded bg-slate-100 text-slate-500 shrink-0";
       statusBadge.innerHTML = "Menunggu";
     }
     if (errorMsg) {
@@ -907,7 +1521,8 @@ function update_account_status(accountId, status, progress) {
     if (status === "processing") {
       statusBadge.textContent = "Memproses...";
       statusBadge.classList.add("bg-blue-100", "text-blue-600");
-      statusBadge.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Proses';
+      statusBadge.innerHTML =
+        '<i class="fas fa-spinner fa-spin mr-1"></i> Proses';
     } else if (status === "done") {
       statusBadge.textContent = "Berhasil";
       statusBadge.classList.add("bg-green-100", "text-green-600");
@@ -936,14 +1551,15 @@ function update_account_status(accountId, status, progress) {
         if (statusText.includes("Login gagal")) {
           errorMsgDiv.innerHTML = 'Login Gagal <i class="fas fa-key ml-1"></i>';
         } else if (statusText.includes("koneksi")) {
-          errorMsgDiv.innerHTML = 'Masalah Koneksi <i class="fas fa-wifi ml-1"></i>';
+          errorMsgDiv.innerHTML =
+            'Masalah Koneksi <i class="fas fa-wifi ml-1"></i>';
         } else if (statusText.includes("browser")) {
-          errorMsgDiv.innerHTML = 'Gagal Browser <i class="fas fa-window-close ml-1"></i>';
+          errorMsgDiv.innerHTML =
+            'Gagal Browser <i class="fas fa-window-close ml-1"></i>';
         }
       } else {
         errorMsgDiv.classList.add("hidden");
       }
-
     } else if (status === "done") {
       // Show success details if available (e.g. "Stok: 10...")
       if (statusText.includes("Stok")) {
@@ -1247,7 +1863,6 @@ async function downloadExcel() {
     if (result.success) {
       logMessage(`${result.message}`, "success");
       logMessage(`File disimpan: ${result.filepath}`, "info");
-      const fileName = result.filepath.split(/[\\\/]/).pop();
       alert(
         `Export berhasil!\n\nFile: ${fileName}\nLokasi: ${result.filepath}`,
       );
@@ -1437,6 +2052,125 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+// ============================================
+// ACCOUNT MANAGEMENT
+// ============================================
+
+async function handleAddAccount(event) {
+  event.preventDefault();
+
+  const nama = document.getElementById("new-nama").value.trim();
+  const pangkalanId = document.getElementById("new-pangkalan-id").value.trim();
+  const username = document.getElementById("new-username").value.trim();
+  const pin = document.getElementById("new-pin").value.trim();
+
+  // Validasi input
+  if (!nama) {
+    showAlert("Nama pangkalan tidak boleh kosong!", "warning");
+    return;
+  }
+
+  if (!pangkalanId) {
+    showAlert("Pangkalan ID tidak boleh kosong!", "warning");
+    return;
+  }
+
+  if (!username) {
+    showAlert("Username tidak boleh kosong!", "warning");
+    return;
+  }
+
+  // Validasi username (email atau nomor HP)
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const phoneRegex = /^(\+62|62|0)[0-9]{9,13}$/;
+
+  if (!emailRegex.test(username) && !phoneRegex.test(username)) {
+    showAlert(
+      "Username harus berupa email yang valid atau nomor HP Indonesia!",
+      "warning",
+    );
+    return;
+  }
+
+  if (!pin) {
+    showAlert("PIN tidak boleh kosong!", "warning");
+    return;
+  }
+
+  // Validasi PIN (hanya angka, 4-8 digit)
+  const pinRegex = /^[0-9]{4,8}$/;
+  if (!pinRegex.test(pin)) {
+    showAlert("PIN harus berupa 4-8 digit angka!", "warning");
+    return;
+  }
+
+  // Get user company access
+  const userStr = localStorage.getItem("snapflux_user");
+  let companyId = null;
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr);
+      companyId = user.company_id;
+    } catch (e) {
+      console.error("Error parsing user for company access", e);
+    }
+  }
+
+  if (!companyId) {
+    showAlert("Error: Sesi tidak valid. Silakan login ulang.", "error");
+    return;
+  }
+
+  const data = {
+    nama: nama,
+    pangkalan_id: pangkalanId,
+    username: username,
+    pin: pin,
+    company_id: companyId,
+  };
+
+  try {
+    const submitBtn = document.getElementById("add-account-submit-btn");
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML =
+        '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+    }
+
+    const result = await eel.add_new_account(data)();
+
+    if (result.success) {
+      showAlert(result.message, "success");
+      document.getElementById("add-account-form").reset();
+      logMessage(result.message, "success");
+      // Optionally reload accounts list
+      setTimeout(() => {
+        showAlert(
+          "Akun berhasil ditambahkan! Silakan refresh daftar akun di halaman Otomasi.",
+          "info",
+        );
+      }, 1000);
+    } else {
+      showAlert(result.message, "error");
+      logMessage(result.message, "error");
+    }
+
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="fas fa-plus"></i> Tambah Akun';
+    }
+  } catch (error) {
+    console.error("Error adding account:", error);
+    showAlert("Terjadi kesalahan saat menambahkan akun: " + error, "error");
+
+    const submitBtn = document.getElementById("add-account-submit-btn");
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="fas fa-plus"></i> Tambah Akun';
+    }
+  }
+}
+
 function toggleHeadless() {
   const toggle = document.getElementById("headless-toggle");
   if (toggle) {
@@ -1458,13 +2192,20 @@ let dashboardRefreshInterval = null;
 
 async function updateDashboardMetrics() {
   try {
+    // Check if we're on monitoring page, use different refresh
+    const currentPage = document.querySelector(".page-section.active");
+    if (currentPage && currentPage.id === "monitoring-page") {
+      await refreshMonitoringMetrics();
+      return;
+    }
+
     // Get user company access
-    const userStr = localStorage.getItem('snapflux_user');
-    let companyAccess = null;
+    const userStr = localStorage.getItem("snapflux_user");
+    let companyId = null;
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
-        companyAccess = user.company_access;
+        companyId = user.company_id;
       } catch (e) {
         console.error("Error parsing user for company access", e);
       }
@@ -1475,7 +2216,7 @@ async function updateDashboardMetrics() {
     let dbStats = null;
 
     try {
-      const dbResult = await eel.get_dashboard_live_stats(companyAccess)();
+      const dbResult = await eel.get_dashboard_live_stats(companyId)();
       if (dbResult.success) {
         dbStats = dbResult.stats;
       }
@@ -1501,23 +2242,33 @@ async function updateDashboardMetrics() {
       // Calculate success rate
       const successRate = document.getElementById("metric-success-rate");
       if (successRate) {
-        const rate = dbStats.total > 0 ? ((dbStats.success / dbStats.total) * 100).toFixed(1) : 0;
+        const rate =
+          dbStats.total > 0
+            ? ((dbStats.success / dbStats.total) * 100).toFixed(1)
+            : 0;
         successRate.textContent = `${rate}%`;
       }
 
       // Get stock movement stats
       try {
-        const movementResult = await eel.get_stock_movement_stats(companyAccess)();
+        const movementResult = await eel.get_stock_movement_stats(companyId)();
         if (movementResult.success) {
           const movement = movementResult.movement;
 
           const actualSalesEl = document.getElementById("metric-actual-sales");
-          const restockDetectedEl = document.getElementById("metric-restock-detected");
-          const accountsMovementEl = document.getElementById("metric-accounts-movement");
+          const restockDetectedEl = document.getElementById(
+            "metric-restock-detected",
+          );
+          const accountsMovementEl = document.getElementById(
+            "metric-accounts-movement",
+          );
 
-          if (actualSalesEl) actualSalesEl.textContent = `${movement.total_sales_yesterday} Tabung`;
-          if (restockDetectedEl) restockDetectedEl.textContent = `${movement.reported_sales_yesterday} Tabung`;
-          if (accountsMovementEl) accountsMovementEl.textContent = `${movement.unreported_sales} Tabung`;
+          if (actualSalesEl)
+            actualSalesEl.textContent = `${movement.total_sales_yesterday} Tabung`;
+          if (restockDetectedEl)
+            restockDetectedEl.textContent = `${movement.reported_sales_yesterday} Tabung`;
+          if (accountsMovementEl)
+            accountsMovementEl.textContent = `${movement.unreported_sales} Tabung`;
         }
       } catch (e) {
         console.error("Error fetching movement stats", e);
@@ -1525,7 +2276,6 @@ async function updateDashboardMetrics() {
 
       // Note: We don't have avg_time, session_duration, throughput from DB yet
       // These will only show for current session from telemetry
-
     } else {
       // Fallback to local telemetry
       metrics = await eel.get_telemetry_metrics()();
@@ -1566,7 +2316,8 @@ async function updateDashboardMetrics() {
     const sessionDuration = document.getElementById("metric-session-duration");
     const throughput = document.getElementById("metric-throughput");
 
-    if (!dbStats && successRate) successRate.textContent = `${metrics.success_rate || 0}%`;
+    if (!dbStats && successRate)
+      successRate.textContent = `${metrics.success_rate || 0}%`;
     if (avgTime) avgTime.textContent = `${metrics.avg_processing_time || 0}s`;
     if (sessionDuration)
       sessionDuration.textContent = formatDuration(
@@ -1592,12 +2343,19 @@ async function updateDashboardMetrics() {
         const movement = movementResult.movement;
 
         const actualSalesEl = document.getElementById("metric-actual-sales");
-        const restockDetectedEl = document.getElementById("metric-restock-detected");
-        const accountsMovementEl = document.getElementById("metric-accounts-movement");
+        const restockDetectedEl = document.getElementById(
+          "metric-restock-detected",
+        );
+        const accountsMovementEl = document.getElementById(
+          "metric-accounts-movement",
+        );
 
-        if (actualSalesEl) actualSalesEl.textContent = movement.total_sales || 0;
-        if (restockDetectedEl) restockDetectedEl.textContent = movement.total_restock || 0;
-        if (accountsMovementEl) accountsMovementEl.textContent = movement.accounts_with_movement || 0;
+        if (actualSalesEl)
+          actualSalesEl.textContent = movement.total_sales || 0;
+        if (restockDetectedEl)
+          restockDetectedEl.textContent = movement.total_restock || 0;
+        if (accountsMovementEl)
+          accountsMovementEl.textContent = movement.accounts_with_movement || 0;
       }
     } catch (e) {
       console.log("Stock movement stats not available:", e);
@@ -1632,16 +2390,16 @@ function updateErrorTracking(errors, failedAccountsDetail) {
     const errorItems = Object.entries(errors)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5) // Top 5 errors
-      .map(
-        ([type, count]) => {
-          const accountNames = accountsByErrorType[type] || [];
-          const accountNamesHtml = accountNames.length > 0
+      .map(([type, count]) => {
+        const accountNames = accountsByErrorType[type] || [];
+        const accountNamesHtml =
+          accountNames.length > 0
             ? `<div style="margin-top: 0.5rem; padding-left: 1rem; font-size: 0.8rem; color: var(--text-muted);">
-                 ${accountNames.map(name => `<div style="padding: 0.25rem 0;">• ${name}</div>`).join("")}
+                 ${accountNames.map((name) => `<div style="padding: 0.25rem 0;">• ${name}</div>`).join("")}
                </div>`
             : "";
 
-          return `
+        return `
                 <div style="padding: 0.75rem; background: #f8fafc; border-radius: 6px; margin-bottom: 0.5rem; border-left: 3px solid var(--error);">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span style="color: var(--text-main); font-size: 0.875rem; font-weight: 500;">${type.replace(/_/g, " ")}</span>
@@ -1650,8 +2408,7 @@ function updateErrorTracking(errors, failedAccountsDetail) {
                     ${accountNamesHtml}
                 </div>
             `;
-        },
-      )
+      })
       .join("");
 
     errorList.innerHTML = errorItems;

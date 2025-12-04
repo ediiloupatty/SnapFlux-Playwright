@@ -31,19 +31,19 @@ else:
     sys.path.append(os.path.dirname(__file__))
 
 # Import modul automation
-from modules.browser.setup import PlaywrightBrowserManager
 from modules.browser.extractor import get_stock_value_direct, get_tabung_terjual_direct
-from modules.data.excel import save_to_excel_pivot_format
-from modules.data.export import export_results_to_excel
-from modules.core.network import check_before_step, is_online, wait_for_internet
 from modules.browser.login import login_direct
 from modules.browser.navigation import (
     click_date_elements_direct,
     click_laporan_penjualan_direct,
 )
-from modules.core.telemetry import get_telemetry_manager
-from modules.core.utils import load_accounts_from_excel, setup_logging
+from modules.browser.setup import PlaywrightBrowserManager
+from modules.core.network import check_before_step, is_online, wait_for_internet
 from modules.core.process_manager import ProcessManager
+from modules.core.telemetry import get_telemetry_manager
+from modules.core.utils import setup_logging
+from modules.data.excel import save_to_excel_pivot_format
+from modules.data.export import export_results_to_excel
 from modules.data.supabase_client import SupabaseManager
 
 # Setup logger
@@ -72,16 +72,17 @@ if getattr(sys, "frozen", False):
     else:
         # Mode --onedir (Files are next to the executable)
         BASE_DIR = os.path.dirname(sys.executable)
-        
+
     DATA_DIR = os.path.dirname(sys.executable)
-    
+
     # Set Chrome Binary Path for bundled browser
     bundled_chrome = os.path.join(BASE_DIR, "chrome", "Chromium", "bin", "chrome.exe")
     if os.path.exists(bundled_chrome):
         os.environ["CHROME_BINARY_PATH"] = bundled_chrome
         # Force Eel to use our bundled Chrome
         import eel.browsers
-        eel.browsers.set_path('chrome', bundled_chrome)
+
+        eel.browsers.set_path("chrome", bundled_chrome)
 else:
     # Running as script
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -92,29 +93,24 @@ web_folder = os.path.join(BASE_DIR, "web")
 eel.init(web_folder)
 
 
-
-
-
-
-
-
 @eel.expose
 def login(username, password):
     """
     Login user
     """
     global supabase_manager
-    
+
     try:
         if not supabase_manager:
             supabase_manager = SupabaseManager()
-            
+
         result = supabase_manager.login_user(username, password)
         return result
-        
+
     except Exception as e:
         logger.error(f"Error logging in: {str(e)}", exc_info=True)
         return {"success": False, "message": f"Error: {str(e)}"}
+
 
 @eel.expose
 def load_accounts_from_supabase(company_access=None):
@@ -122,12 +118,20 @@ def load_accounts_from_supabase(company_access=None):
     Load akun dari Supabase Database
     """
     global supabase_manager
-    
+
     try:
+        logger.info(
+            f"[DEBUG GUI] load_accounts_from_supabase called with company_access={company_access}, type={type(company_access)}"
+        )
+
         if not supabase_manager:
             supabase_manager = SupabaseManager()
-            
+
+        logger.info(
+            f"[DEBUG GUI] Calling fetch_accounts with company_filter={company_access}"
+        )
         accounts = supabase_manager.fetch_accounts(company_filter=company_access)
+        logger.info(f"[DEBUG GUI] fetch_accounts returned {len(accounts)} accounts")
 
         if not accounts:
             return {
@@ -160,21 +164,28 @@ def get_dashboard_live_stats(company_access=None):
     Get live dashboard statistics from Supabase (today's summary)
     """
     global supabase_manager
-    
+
     try:
+        logger.info(
+            f"[DEBUG GUI] get_dashboard_live_stats called with company_access={company_access}"
+        )
+
         if not supabase_manager:
             supabase_manager = SupabaseManager()
-            
+
         stats = supabase_manager.get_today_summary(company_filter=company_access)
-        return {
-            "success": True,
-            "stats": stats
-        }
+        return {"success": True, "stats": stats}
     except Exception as e:
         logger.error(f"Error getting live stats: {str(e)}", exc_info=True)
         return {
             "success": False,
-            "stats": {"total": 0, "success": 0, "failed": 0, "total_sales": 0, "total_stock": 0}
+            "stats": {
+                "total": 0,
+                "success": 0,
+                "failed": 0,
+                "total_sales": 0,
+                "total_stock": 0,
+            },
         }
 
 
@@ -184,21 +195,24 @@ def get_stock_movement_stats(company_access=None):
     Get stock movement statistics (sales and restocks detected from stock changes)
     """
     global supabase_manager
-    
+
     try:
         if not supabase_manager:
             supabase_manager = SupabaseManager()
-            
-        movement = supabase_manager.get_stock_movement_today(company_filter=company_access)
-        return {
-            "success": True,
-            "movement": movement
-        }
+
+        movement = supabase_manager.get_stock_movement_today(
+            company_filter=company_access
+        )
+        return {"success": True, "movement": movement}
     except Exception as e:
         logger.error(f"Error getting stock movement: {str(e)}", exc_info=True)
         return {
             "success": False,
-            "movement": {"total_sales_yesterday": 0, "reported_sales_yesterday": 0, "unreported_sales": 0}
+            "movement": {
+                "total_sales_yesterday": 0,
+                "reported_sales_yesterday": 0,
+                "unreported_sales": 0,
+            },
         }
 
 
@@ -208,12 +222,21 @@ def load_unprocessed_accounts_only(company_access=None):
     Load only accounts that haven't been processed today (Smart Resume)
     """
     global supabase_manager
-    
+
     try:
+        logger.info(
+            f"[DEBUG GUI] load_unprocessed_accounts_only called with company_access={company_access}, type={type(company_access)}"
+        )
+
         if not supabase_manager:
             supabase_manager = SupabaseManager()
-            
-        accounts = supabase_manager.get_unprocessed_accounts_today(company_filter=company_access)
+
+        accounts = supabase_manager.get_unprocessed_accounts_today(
+            company_filter=company_access
+        )
+        logger.info(
+            f"[DEBUG GUI] get_unprocessed_accounts_today returned {len(accounts)} accounts"
+        )
 
         if not accounts:
             return {
@@ -240,9 +263,6 @@ def load_unprocessed_accounts_only(company_access=None):
         }
 
 
-
-
-
 @eel.expose
 def start_automation(accounts, settings):
     """
@@ -262,8 +282,13 @@ def start_automation(accounts, settings):
     global automation_thread, process_manager_instance
 
     try:
-        if process_manager_instance and process_manager_instance.stop_requested == False and automation_thread and automation_thread.is_alive():
-             return {"success": False, "message": "Automation sedang berjalan"}
+        if (
+            process_manager_instance
+            and process_manager_instance.stop_requested == False
+            and automation_thread
+            and automation_thread.is_alive()
+        ):
+            return {"success": False, "message": "Automation sedang berjalan"}
 
         # Parse tanggal jika ada
         selected_date = None
@@ -272,7 +297,7 @@ def start_automation(accounts, settings):
                 selected_date = datetime.strptime(settings["date"], "%Y-%m-%d")
             except Exception:
                 selected_date = None
-        
+
         # Pass date object to settings for manager
         settings["date_obj"] = selected_date
 
@@ -294,7 +319,7 @@ def start_automation(accounts, settings):
 def pause_automation():
     """Pause automation yang sedang berjalan"""
     global process_manager_instance
-    
+
     if not process_manager_instance:
         return {"success": False, "message": "Automation tidak berjalan"}
 
@@ -336,24 +361,28 @@ def run_automation_background(accounts, settings):
             "on_log": eel.log_message,
             "on_progress": eel.update_overall_progress,
             "on_account_status": eel.update_account_status,
-            "on_result": lambda res: None # We handle results in bulk at the end or via global list
+            "on_result": lambda res: None,  # We handle results in bulk at the end or via global list
         }
-        
+
         # Initialize Manager
-        process_manager_instance = ProcessManager(callbacks, supabase_client=supabase_manager)
-        
+        process_manager_instance = ProcessManager(
+            callbacks, supabase_client=supabase_manager
+        )
+
         # Prepare global results
         if not automation_results:
             automation_results = []
-            
-        automation_export_date = settings.get("date_obj") if settings.get("date_obj") else datetime.now()
-        
+
+        automation_export_date = (
+            settings.get("date_obj") if settings.get("date_obj") else datetime.now()
+        )
+
         # Run Process
         results = process_manager_instance.run(accounts, settings)
-        
+
         # Update global results
         automation_results.extend(results)
-        
+
         # Completion event
         eel.automation_completed(len(results), len(accounts))
 
@@ -609,6 +638,132 @@ def clear_results():
     return {"success": True, "message": "Data hasil dibersihkan"}
 
 
+@eel.expose
+def get_monitoring_results(company_access=None, limit=100, date_filter=None):
+    """
+    Get monitoring results (automation history) from database with company filter
+
+    Args:
+        company_access (int): Company ID to filter results
+        limit (int): Maximum number of results to return
+        date_filter (str): Date filter in YYYY-MM-DD format (optional)
+
+    Returns:
+        dict: {"success": bool, "results": list, "count": int, "message": str}
+    """
+    global supabase_manager
+
+    try:
+        logger.info(
+            f"[DEBUG GUI] get_monitoring_results called with company_access={company_access}, limit={limit}, date_filter={date_filter}"
+        )
+
+        if not supabase_manager:
+            supabase_manager = SupabaseManager()
+
+        results = supabase_manager.get_automation_results(
+            company_filter=company_access, limit=limit, date_filter=date_filter
+        )
+        logger.info(
+            f"[DEBUG GUI] get_automation_results returned {len(results)} results"
+        )
+
+        return {
+            "success": True,
+            "results": results,
+            "count": len(results),
+            "message": f"Berhasil load {len(results)} hasil monitoring",
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting monitoring results: {str(e)}", exc_info=True)
+        return {
+            "success": False,
+            "results": [],
+            "count": 0,
+            "message": f"Error: {str(e)}",
+        }
+
+
+@eel.expose
+def add_new_account(data):
+    """
+    Add new account to database
+
+    Args:
+        data (dict): Account data {nama, username, pin, pangkalan_id, company_id}
+
+    Returns:
+        dict: {"success": bool, "message": str}
+    """
+    global supabase_manager
+
+    try:
+        logger.info(
+            f"[DEBUG GUI] add_new_account called with data: {data.get('nama')}, company_id: {data.get('company_id')}"
+        )
+
+        if not supabase_manager:
+            supabase_manager = SupabaseManager()
+
+        # Validate required fields
+        required_fields = ["nama", "username", "pin", "pangkalan_id", "company_id"]
+        for field in required_fields:
+            if not data.get(field):
+                return {"success": False, "message": f"Field '{field}' wajib diisi!"}
+
+        # Add account
+        success = supabase_manager.add_account(data)
+
+        if success:
+            logger.info(
+                f"[DEBUG GUI] Account {data.get('username')} berhasil ditambahkan"
+            )
+            return {
+                "success": True,
+                "message": f"Akun '{data.get('nama')}' berhasil ditambahkan ke database!",
+            }
+        else:
+            logger.warning(f"[DEBUG GUI] Failed to add account {data.get('username')}")
+            return {
+                "success": False,
+                "message": "Gagal menambahkan akun. Username mungkin sudah terdaftar.",
+            }
+
+    except Exception as e:
+        logger.error(f"Error adding new account: {str(e)}", exc_info=True)
+        return {"success": False, "message": f"Error: {str(e)}"}
+
+
+@eel.expose
+def get_stock_summary(company_access=None, date_str=None):
+    """
+    Get stock summary for a specific date
+
+    Args:
+        company_access (int): Company ID to filter
+        date_str (str): Date in YYYY-MM-DD format (optional, default today)
+
+    Returns:
+        dict: {"success": bool, "data": {total_stock: int, total_sales: int}}
+    """
+    global supabase_manager
+
+    try:
+        if not supabase_manager:
+            supabase_manager = SupabaseManager()
+
+        result = supabase_manager.get_stock_summary_by_date(
+            company_filter=company_access, date_str=date_str
+        )
+
+        return {"success": True, "data": result}
+
+    except Exception as e:
+        logger.error(f"Error getting stock summary: {str(e)}", exc_info=True)
+        return {"success": False, "data": {"total_stock": 0, "total_sales": 0}}
+
+
 def main():
     """Main function untuk menjalankan GUI"""
     try:
@@ -642,32 +797,30 @@ def main():
         # Check Chrome Path explicitly
         chrome_path = os.environ.get("CHROME_BINARY_PATH")
         print(f"DEBUG: Chrome Path set to: {chrome_path}")
-        
+
         # Opsi browser untuk Eel
         browser_opts = {
-            'mode': 'chrome', 
-            'host': 'localhost', 
-            'block': True,
-            'cmdline_args': ['--start-maximized']
+            "mode": "chrome",
+            "host": "localhost",
+            "block": True,
+            "cmdline_args": ["--start-maximized"],
         }
-        
+
         if chrome_path and os.path.exists(chrome_path):
-             print("[v] Menggunakan Bundled Chrome untuk GUI")
-             # Force path for 'chrome' mode
-             # import eel.browsers removed to avoid UnboundLocalError
-             eel.browsers.set_path('chrome', chrome_path)
+            print("[v] Menggunakan Bundled Chrome untuk GUI")
+            # Force path for 'chrome' mode
+            # import eel.browsers removed to avoid UnboundLocalError
+            eel.browsers.set_path("chrome", chrome_path)
         else:
-             print("[!] Bundled Chrome tidak ditemukan, menggunakan default system browser")
-             browser_opts['mode'] = 'default'
+            print(
+                "[!] Bundled Chrome tidak ditemukan, menggunakan default system browser"
+            )
+            browser_opts["mode"] = "default"
 
         for port in ports_to_try:
             try:
                 print(f"Trying port {port}...")
-                eel.start(
-                    "login.html",
-                    port=port,
-                    **browser_opts
-                )
+                eel.start("login.html", port=port, **browser_opts)
                 started = True
                 break
             except OSError as ose:

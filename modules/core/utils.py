@@ -15,8 +15,6 @@ from collections import Counter
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
 
-import pandas as pd
-
 # Updated import for modular structure
 from .validators import is_valid_email, is_valid_phone, is_valid_pin
 
@@ -81,56 +79,19 @@ def setup_logging():
 # ============================================
 
 
+# DEPRECATED: Function tidak digunakan lagi karena sudah migrasi ke database (Supabase)
+# Load accounts sekarang menggunakan: supabase_client.fetch_accounts()
 def load_accounts_from_excel(filename):
     """
     Load data akun dari file Excel dengan validasi
-
-    Args:
-        filename (str): Path ke file Excel
-
-    Returns:
-        list: List tuple (nama, username, pin, pangkalan_id)
+    DEPRECATED - Gunakan supabase_client.fetch_accounts() sebagai gantinya
     """
-    try:
-        df = pd.read_excel(
-            filename, dtype={"Nama": str, "Username": str, "Password": str, "Pangkalan_id": str}
-        )
-
-        valid_accounts = []
-
-        for _, row in df.iterrows():
-            nama = str(row["Nama"]).strip()
-            username = str(row["Username"]).strip()
-            pin = str(row["Password"]).strip()
-            
-            # Baca Pangkalan_id (bisa kosong untuk backward compatibility)
-            pangkalan_id = str(row.get("Pangkalan_id", "")).strip()
-            
-            # Jika Pangkalan_id kosong, gunakan username sebagai fallback
-            if not pangkalan_id or pangkalan_id == "nan":
-                pangkalan_id = username
-                logger.warning(f"Pangkalan_id tidak ditemukan untuk {nama}, menggunakan username sebagai ID")
-
-            # Validasi username
-            if not (is_valid_email(username) or is_valid_phone(username)):
-                logger.warning(f"Invalid username: {username}")
-                continue
-
-            # Validasi PIN
-            if not is_valid_pin(pin):
-                logger.warning(f"Invalid PIN for {username}")
-                continue
-
-            valid_accounts.append((nama, username, pin, pangkalan_id))
-
-        if not valid_accounts:
-            raise ValueError("No valid accounts found in Excel file!")
-
-        return valid_accounts
-
-    except Exception as e:
-        logger.error(f"Error loading accounts: {str(e)}")
-        raise
+    logger.warning(
+        "load_accounts_from_excel() is deprecated. Use supabase_client.fetch_accounts() instead."
+    )
+    raise NotImplementedError(
+        "This function has been deprecated. Please use database loading via supabase_client.fetch_accounts()"
+    )
 
 
 def print_account_stats(accounts):
