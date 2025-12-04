@@ -82,7 +82,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   window.startAutomation = startAutomation;
   window.pauseAutomation = pauseAutomation;
   window.stopAutomation = stopAutomation;
-  window.handleFileSelect = handleFileSelect;
   window.toggleSelectAll = toggleSelectAll;
   window.showPage = showPage;
   window.toggleHeadless = toggleHeadless;
@@ -95,6 +94,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   window.updateProcessingView = updateProcessingView;
   window.clearExpiredSessions = clearExpiredSessions;
   window.clearAllSessions = clearAllSessions;
+  window.loadFromDatabase = loadFromDatabase;
+  window.loadUnprocessedAccounts = loadUnprocessedAccounts;
 
   console.log("✅ All functions registered globally");
 
@@ -131,7 +132,48 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Initialize sidebar state
   initSidebar();
+
+  // Check session
+  checkSession();
 });
+
+function checkSession() {
+  const user = localStorage.getItem('snapflux_user');
+  if (!user) {
+    window.location.href = 'login.html';
+    return;
+  }
+
+  // Parse user data
+  try {
+    const userData = JSON.parse(user);
+    // Update UI with user info
+    const pageSubtitle = document.getElementById('page-subtitle');
+    if (pageSubtitle) {
+      pageSubtitle.innerHTML = `Pantau performa otomasi secara realtime <br> <span style="font-size: 0.8rem; color: #0eb0f2;">Logged in as: ${userData.full_name || userData.username} (${userData.company_access})</span>`;
+    }
+
+    // Add logout button to sidebar footer
+    const sidebarFooter = document.querySelector('.sidebar-footer');
+    if (sidebarFooter) {
+      const logoutBtn = document.createElement('div');
+      logoutBtn.className = 'flex items-center gap-2 text-sm text-muted cursor-pointer hover:text-red-500 transition-colors mt-2';
+      logoutBtn.innerHTML = '<i class="fas fa-sign-out-alt"></i> <span>Keluar</span>';
+      logoutBtn.onclick = logout;
+      sidebarFooter.appendChild(logoutBtn);
+    }
+
+  } catch (e) {
+    console.error("Error parsing user data", e);
+    logout();
+  }
+}
+
+function logout() {
+  localStorage.removeItem('snapflux_user');
+  localStorage.removeItem('snapflux_token');
+  window.location.href = 'login.html';
+}
 
 // ============================================
 // SIDEBAR LOGIC
@@ -406,74 +448,107 @@ console.log("  nav('settings') - Navigate to settings");
 console.log("  nav('about') - Navigate to about");
 
 // ============================================
-// EXCEL FILE MANAGEMENT
+// DATABASE LOADING
 // ============================================
 
-async function handleFileSelect(input) {
-  if (input.files && input.files[0]) {
-    const file = input.files[0];
-    const fileName = file.name;
+async function loadFromDatabase() {
+  const label = document.getElementById("selected-filename");
 
-    // Update label
-    const label = document.getElementById("selected-filename");
-    if (label) label.textContent = fileName;
+  try {
+    logMessage("Menghubungkan ke Database...", "info");
 
-    logMessage(`Membaca file ${fileName}...`, "info");
+    // Check if function exists
+    if (typeof eel.load_accounts_from_supabase !== "function") {
+      showAlert(
+        "Fitur Database belum tersedia. Harap restart aplikasi.",
+        "warning",
+      );
+      return;
+    }
 
-    // Read file
-    const reader = new FileReader();
-    reader.onload = async function (e) {
-      const base64Data = e.target.result;
-
+    // Get user company access
+    const userStr = localStorage.getItem('snapflux_user');
+    let companyAccess = null;
+    if (userStr) {
       try {
-        // Check if function exists
-        if (typeof eel.load_accounts_from_data !== "function") {
-          showAlert(
-            "Update belum diterapkan. Harap TUTUP aplikasi dan jalankan ulang START_GUI.bat",
-            "warning",
-          );
-          input.value = "";
-          label.textContent = "Belum ada file";
-          return;
-        }
-
-        const result = await eel.load_accounts_from_data(
-          base64Data,
-          fileName,
-        )();
-
-        if (result.success) {
-          accounts = result.accounts;
-          renderAccounts();
-          updateStatistics();
-
-          // Update dashboard dengan data realtime
-          updateDashboardMetrics();
-
-          logMessage(`${result.message}`, "success");
-        } else {
-          showAlert(result.message, "error");
-          logMessage(`${result.message}`, "error");
-          // Reset input
-          input.value = "";
-          label.textContent = "Belum ada file";
-        }
-      } catch (error) {
-        console.error("Error loading accounts:", error);
-        logMessage("Gagal memuat akun dari file", "error");
-        showAlert("Terjadi kesalahan saat memuat akun: " + error, "error");
-        // Reset input
-        input.value = "";
-        label.textContent = "Belum ada file";
+        const user = JSON.parse(userStr);
+        companyAccess = user.company_access;
+      } catch (e) {
+        console.error("Error parsing user for company access", e);
       }
-    };
+    }
 
-    reader.onerror = function (error) {
-      console.error("Error reading file:", error);
-      showAlert("Gagal membaca file", "error");
-    };
+    const result = await eel.load_accounts_from_supabase(companyAccess)();
 
-    reader.readAsDataURL(file);
+    if (result.success) {
+      accounts = result.accounts;
+      renderAccounts();
+      updateStatistics();
+
+      // Update dashboard dengan data realtime
+      updateDashboardMetrics();
+
+      logMessage(`${result.message}`, "success");
+      if (label) label.textContent = "Data dari Database";
+
+      showAlert(`Berhasil memuat ${result.count} akun dari Database`, "success");
+    } else {
+      showAlert(result.message, "error");
+      logMessage(`${result.message}`, "error");
+    }
+  } catch (error) {
+    console.error("Error loading from database:", error);
+    logMessage("Gagal memuat akun dari database", "error");
+    showAlert("Terjadi kesalahan: " + error, "error");
+  }
+}
+
+async function loadUnprocessedAccounts() {
+  const label = document.getElementById("selected-filename");
+
+  try {
+    logMessage("Memuat akun yang belum dicek hari ini...", "info");
+
+    if (typeof eel.load_unprocessed_accounts_only !== "function") {
+      showAlert(
+        "Fitur Smart Resume belum tersedia. Harap restart aplikasi.",
+        "warning",
+      );
+      return;
+    }
+
+    // Get user company access
+    const userStr = localStorage.getItem('snapflux_user');
+    let companyAccess = null;
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        companyAccess = user.company_access;
+      } catch (e) {
+        console.error("Error parsing user for company access", e);
+      }
+    }
+
+    const result = await eel.load_unprocessed_accounts_only(companyAccess)();
+
+    if (result.success) {
+      accounts = result.accounts;
+      renderAccounts();
+      updateStatistics();
+      updateDashboardMetrics();
+
+      logMessage(`${result.message}`, "success");
+      if (label) label.textContent = "Data Belum Dicek Hari Ini";
+
+      showAlert(`Berhasil memuat ${result.count} akun yang belum dicek`, "success");
+    } else {
+      showAlert(result.message, "info");
+      logMessage(`${result.message}`, "info");
+    }
+  } catch (error) {
+    console.error("Error loading unprocessed accounts:", error);
+    logMessage("Gagal memuat akun yang belum dicek", "error");
+    showAlert("Terjadi kesalahan: " + error, "error");
   }
 }
 
@@ -1383,24 +1458,107 @@ let dashboardRefreshInterval = null;
 
 async function updateDashboardMetrics() {
   try {
-    // Get telemetry metrics
-    const metrics = await eel.get_telemetry_metrics()();
+    // Get user company access
+    const userStr = localStorage.getItem('snapflux_user');
+    let companyAccess = null;
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        companyAccess = user.company_access;
+      } catch (e) {
+        console.error("Error parsing user for company access", e);
+      }
+    }
 
-    // Update main stat cards (Total Akun, Berhasil, Gagal)
-    const totalAccountsEl = document.getElementById("total-accounts");
-    const successCountEl = document.getElementById("success-count");
-    const failedCountEl = document.getElementById("failed-count");
+    // Try to get live stats from database first
+    let metrics;
+    let dbStats = null;
 
-    if (totalAccountsEl) {
-      totalAccountsEl.textContent =
-        metrics.total_accounts || accounts.length || 0;
+    try {
+      const dbResult = await eel.get_dashboard_live_stats(companyAccess)();
+      if (dbResult.success) {
+        dbStats = dbResult.stats;
+      }
+    } catch (e) {
+      console.log("Database stats not available, using local telemetry");
     }
-    if (successCountEl) {
-      successCountEl.textContent = metrics.successful || 0;
+
+    // If database stats available, use them; otherwise fallback to local telemetry
+    if (dbStats) {
+      // Use database stats
+      const totalAccountsEl = document.getElementById("total-accounts");
+      const successCountEl = document.getElementById("success-count");
+      const failedCountEl = document.getElementById("failed-count");
+      const totalSalesEl = document.getElementById("metric-total-sales");
+      const totalStockEl = document.getElementById("metric-total-stock");
+
+      if (totalAccountsEl) totalAccountsEl.textContent = dbStats.total || 0;
+      if (successCountEl) successCountEl.textContent = dbStats.success || 0;
+      if (failedCountEl) failedCountEl.textContent = dbStats.failed || 0;
+      if (totalSalesEl) totalSalesEl.textContent = dbStats.total_sales || 0;
+      if (totalStockEl) totalStockEl.textContent = dbStats.total_stock || 0;
+
+      // Calculate success rate
+      const successRate = document.getElementById("metric-success-rate");
+      if (successRate) {
+        const rate = dbStats.total > 0 ? ((dbStats.success / dbStats.total) * 100).toFixed(1) : 0;
+        successRate.textContent = `${rate}%`;
+      }
+
+      // Get stock movement stats
+      try {
+        const movementResult = await eel.get_stock_movement_stats(companyAccess)();
+        if (movementResult.success) {
+          const movement = movementResult.movement;
+
+          const actualSalesEl = document.getElementById("metric-actual-sales");
+          const restockDetectedEl = document.getElementById("metric-restock-detected");
+          const accountsMovementEl = document.getElementById("metric-accounts-movement");
+
+          if (actualSalesEl) actualSalesEl.textContent = `${movement.total_sales_yesterday} Tabung`;
+          if (restockDetectedEl) restockDetectedEl.textContent = `${movement.reported_sales_yesterday} Tabung`;
+          if (accountsMovementEl) accountsMovementEl.textContent = `${movement.unreported_sales} Tabung`;
+        }
+      } catch (e) {
+        console.error("Error fetching movement stats", e);
+      }
+
+      // Note: We don't have avg_time, session_duration, throughput from DB yet
+      // These will only show for current session from telemetry
+
+    } else {
+      // Fallback to local telemetry
+      metrics = await eel.get_telemetry_metrics()();
+
+      const totalAccountsEl = document.getElementById("total-accounts");
+      const successCountEl = document.getElementById("success-count");
+      const failedCountEl = document.getElementById("failed-count");
+
+      if (totalAccountsEl) {
+        totalAccountsEl.textContent =
+          metrics.total_accounts || accounts.length || 0;
+      }
+      if (successCountEl) {
+        successCountEl.textContent = metrics.successful || 0;
+      }
+      if (failedCountEl) {
+        failedCountEl.textContent = metrics.failed || 0;
+      }
+
+      const totalSalesEl = document.getElementById("metric-total-sales");
+      const totalStockEl = document.getElementById("metric-total-stock");
+
+      if (metrics.business_metrics) {
+        if (totalSalesEl)
+          totalSalesEl.textContent =
+            metrics.business_metrics.total_penjualan || 0;
+        if (totalStockEl)
+          totalStockEl.textContent = metrics.business_metrics.total_stok || 0;
+      }
     }
-    if (failedCountEl) {
-      failedCountEl.textContent = metrics.failed || 0;
-    }
+
+    // Always get telemetry for session-specific metrics (avg time, duration, throughput)
+    metrics = await eel.get_telemetry_metrics()();
 
     // Update performance metrics
     const successRate = document.getElementById("metric-success-rate");
@@ -1408,7 +1566,7 @@ async function updateDashboardMetrics() {
     const sessionDuration = document.getElementById("metric-session-duration");
     const throughput = document.getElementById("metric-throughput");
 
-    if (successRate) successRate.textContent = `${metrics.success_rate || 0}%`;
+    if (!dbStats && successRate) successRate.textContent = `${metrics.success_rate || 0}%`;
     if (avgTime) avgTime.textContent = `${metrics.avg_processing_time || 0}s`;
     if (sessionDuration)
       sessionDuration.textContent = formatDuration(
@@ -1427,16 +1585,22 @@ async function updateDashboardMetrics() {
       updateErrorTracking(metrics.errors, metrics.failed_accounts_detail || []);
     }
 
-    // Update Business Metrics (NEW)
-    const totalSalesEl = document.getElementById("metric-total-sales");
-    const totalStockEl = document.getElementById("metric-total-stock");
+    // Fetch and update stock movement
+    try {
+      const movementResult = await eel.get_stock_movement_stats()();
+      if (movementResult.success) {
+        const movement = movementResult.movement;
 
-    if (metrics.business_metrics) {
-      if (totalSalesEl)
-        totalSalesEl.textContent =
-          metrics.business_metrics.total_penjualan || 0;
-      if (totalStockEl)
-        totalStockEl.textContent = metrics.business_metrics.total_stok || 0;
+        const actualSalesEl = document.getElementById("metric-actual-sales");
+        const restockDetectedEl = document.getElementById("metric-restock-detected");
+        const accountsMovementEl = document.getElementById("metric-accounts-movement");
+
+        if (actualSalesEl) actualSalesEl.textContent = movement.total_sales || 0;
+        if (restockDetectedEl) restockDetectedEl.textContent = movement.total_restock || 0;
+        if (accountsMovementEl) accountsMovementEl.textContent = movement.accounts_with_movement || 0;
+      }
+    } catch (e) {
+      console.log("Stock movement stats not available:", e);
     }
   } catch (error) {
     console.error("Error updating dashboard metrics:", error);

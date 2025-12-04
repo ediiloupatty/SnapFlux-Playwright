@@ -15,7 +15,7 @@ import os
 HEADLESS_MODE = True
 
 # Browser Timeout Settings (dalam milliseconds)
-DEFAULT_TIMEOUT = 20000  # 20 detik
+DEFAULT_TIMEOUT = 20000  # 20 deti
 NAVIGATION_TIMEOUT = 20000  # 20 detik
 ACTION_TIMEOUT = 10000  # 10 detik
 

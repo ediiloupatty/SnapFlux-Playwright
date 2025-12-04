@@ -44,6 +44,7 @@ from modules.browser.navigation import (
 from modules.core.telemetry import get_telemetry_manager
 from modules.core.utils import load_accounts_from_excel, setup_logging
 from modules.core.process_manager import ProcessManager
+from modules.data.supabase_client import SupabaseManager
 
 # Setup logger
 logger = logging.getLogger("gui_automation")
@@ -51,6 +52,7 @@ logger = logging.getLogger("gui_automation")
 # Global variables untuk kontrol automation
 automation_thread = None
 process_manager_instance = None
+supabase_manager = None
 
 
 # Global variables untuk menyimpan hasil
@@ -90,140 +92,60 @@ web_folder = os.path.join(BASE_DIR, "web")
 eel.init(web_folder)
 
 
+
+
+
+
+
+
 @eel.expose
-def load_accounts_from_data(base64_data, filename):
+def login(username, password):
     """
-    Load akun dari data Base64 (file upload dari browser)
+    Login user
     """
+    global supabase_manager
+    
     try:
-        # Decode base64
-        if "," in base64_data:
-            base64_data = base64_data.split(",")[1]
+        if not supabase_manager:
+            supabase_manager = SupabaseManager()
+            
+        result = supabase_manager.login_user(username, password)
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error logging in: {str(e)}", exc_info=True)
+        return {"success": False, "message": f"Error: {str(e)}"}
 
-        decoded = base64.b64decode(base64_data)
-        file_obj = io.BytesIO(decoded)
-
-        # Load accounts using existing utility
-        accounts = load_accounts_from_excel(file_obj)
+@eel.expose
+def load_accounts_from_supabase(company_access=None):
+    """
+    Load akun dari Supabase Database
+    """
+    global supabase_manager
+    
+    try:
+        if not supabase_manager:
+            supabase_manager = SupabaseManager()
+            
+        accounts = supabase_manager.fetch_accounts(company_filter=company_access)
 
         if not accounts:
             return {
                 "success": False,
                 "accounts": [],
-                "message": "Tidak ada akun valid dalam file",
+                "message": "Tidak ada akun ditemukan di database atau koneksi gagal",
                 "count": 0,
             }
 
-        # Format accounts untuk frontend
-        formatted_accounts = []
-        for idx, account_data in enumerate(accounts, 1):
-            # Handle both old format (3 items) and new format (4 items)
-            if len(account_data) == 4:
-                nama, username, pin, pangkalan_id = account_data
-            else:
-                nama, username, pin = account_data
-                pangkalan_id = username  # Fallback to username
-            
-            formatted_accounts.append(
-                {
-                    "id": idx,
-                    "nama": nama,
-                    "username": username,
-                    "pin": pin,
-                    "pangkalan_id": pangkalan_id,
-                    "status": "waiting",
-                    "progress": 0,
-                }
-            )
-
         return {
             "success": True,
-            "accounts": formatted_accounts,
-            "message": f"Berhasil load {len(accounts)} akun dari {filename}",
+            "accounts": accounts,
+            "message": f"Berhasil load {len(accounts)} akun dari Database",
             "count": len(accounts),
         }
 
     except Exception as e:
-        logger.error(f"Error loading accounts from data: {str(e)}", exc_info=True)
-        return {
-            "success": False,
-            "accounts": [],
-            "message": f"Error: {str(e)}",
-            "count": 0,
-        }
-
-
-# Deprecated: load_accounts_from_file (kept for reference if needed, but unused by frontend now)
-@eel.expose
-def load_accounts_from_file(file_path):
-    """
-    Load akun dari file Excel
-
-    Args:
-        file_path (str): Path ke file Excel
-
-    Returns:
-        dict: {
-            "success": bool,
-            "accounts": list,
-            "message": str,
-            "count": int
-        }
-    """
-    try:
-        # Cari file di folder akun
-        akun_dir = os.path.join(DATA_DIR, "akun")
-        full_path = os.path.join(akun_dir, file_path)
-
-        if not os.path.exists(full_path):
-            return {
-                "success": False,
-                "accounts": [],
-                "message": f"File tidak ditemukan: {file_path}",
-                "count": 0,
-            }
-
-        accounts = load_accounts_from_excel(full_path)
-
-        if not accounts:
-            return {
-                "success": False,
-                "accounts": [],
-                "message": "Tidak ada akun valid dalam file",
-                "count": 0,
-            }
-
-        # Format accounts untuk frontend
-        formatted_accounts = []
-        for idx, account_data in enumerate(accounts, 1):
-            # Handle both old format (3 items) and new format (4 items)
-            if len(account_data) == 4:
-                nama, username, pin, pangkalan_id = account_data
-            else:
-                nama, username, pin = account_data
-                pangkalan_id = username  # Fallback to username
-            
-            formatted_accounts.append(
-                {
-                    "id": idx,
-                    "nama": nama,
-                    "username": username,
-                    "pin": pin,
-                    "pangkalan_id": pangkalan_id,
-                    "status": "waiting",
-                    "progress": 0,
-                }
-            )
-
-        return {
-            "success": True,
-            "accounts": formatted_accounts,
-            "message": f"Berhasil load {len(accounts)} akun",
-            "count": len(accounts),
-        }
-
-    except Exception as e:
-        logger.error(f"Error loading accounts: {str(e)}", exc_info=True)
+        logger.error(f"Error loading accounts from Supabase: {str(e)}", exc_info=True)
         return {
             "success": False,
             "accounts": [],
@@ -233,42 +155,92 @@ def load_accounts_from_file(file_path):
 
 
 @eel.expose
-def get_available_excel_files():
+def get_dashboard_live_stats(company_access=None):
     """
-    Dapatkan list file Excel yang tersedia di folder akun
-
-    Returns:
-        dict: {
-            "success": bool,
-            "files": list,
-            "message": str
-        }
+    Get live dashboard statistics from Supabase (today's summary)
     """
+    global supabase_manager
+    
     try:
-        akun_dir = os.path.join(DATA_DIR, "akun")
+        if not supabase_manager:
+            supabase_manager = SupabaseManager()
+            
+        stats = supabase_manager.get_today_summary(company_filter=company_access)
+        return {
+            "success": True,
+            "stats": stats
+        }
+    except Exception as e:
+        logger.error(f"Error getting live stats: {str(e)}", exc_info=True)
+        return {
+            "success": False,
+            "stats": {"total": 0, "success": 0, "failed": 0, "total_sales": 0, "total_stock": 0}
+        }
 
-        if not os.path.exists(akun_dir):
+
+@eel.expose
+def get_stock_movement_stats(company_access=None):
+    """
+    Get stock movement statistics (sales and restocks detected from stock changes)
+    """
+    global supabase_manager
+    
+    try:
+        if not supabase_manager:
+            supabase_manager = SupabaseManager()
+            
+        movement = supabase_manager.get_stock_movement_today(company_filter=company_access)
+        return {
+            "success": True,
+            "movement": movement
+        }
+    except Exception as e:
+        logger.error(f"Error getting stock movement: {str(e)}", exc_info=True)
+        return {
+            "success": False,
+            "movement": {"total_sales_yesterday": 0, "reported_sales_yesterday": 0, "unreported_sales": 0}
+        }
+
+
+@eel.expose
+def load_unprocessed_accounts_only(company_access=None):
+    """
+    Load only accounts that haven't been processed today (Smart Resume)
+    """
+    global supabase_manager
+    
+    try:
+        if not supabase_manager:
+            supabase_manager = SupabaseManager()
+            
+        accounts = supabase_manager.get_unprocessed_accounts_today(company_filter=company_access)
+
+        if not accounts:
             return {
                 "success": False,
-                "files": [],
-                "message": "Folder akun tidak ditemukan",
+                "accounts": [],
+                "message": "Semua akun sudah dicek hari ini atau tidak ada akun",
+                "count": 0,
             }
-
-        excel_files = [
-            f
-            for f in os.listdir(akun_dir)
-            if f.endswith((".xlsx", ".xls")) and not f.startswith("~")
-        ]
 
         return {
             "success": True,
-            "files": excel_files,
-            "message": f"Ditemukan {len(excel_files)} file",
+            "accounts": accounts,
+            "message": f"Berhasil load {len(accounts)} akun yang belum dicek hari ini",
+            "count": len(accounts),
         }
 
     except Exception as e:
-        logger.error(f"Error getting Excel files: {str(e)}", exc_info=True)
-        return {"success": False, "files": [], "message": f"Error: {str(e)}"}
+        logger.error(f"Error loading unprocessed accounts: {str(e)}", exc_info=True)
+        return {
+            "success": False,
+            "accounts": [],
+            "message": f"Error: {str(e)}",
+            "count": 0,
+        }
+
+
+
 
 
 @eel.expose
@@ -368,7 +340,7 @@ def run_automation_background(accounts, settings):
         }
         
         # Initialize Manager
-        process_manager_instance = ProcessManager(callbacks)
+        process_manager_instance = ProcessManager(callbacks, supabase_client=supabase_manager)
         
         # Prepare global results
         if not automation_results:
@@ -643,6 +615,10 @@ def main():
         # Setup logging
         setup_logging()
 
+        # Initialize Supabase
+        global supabase_manager
+        supabase_manager = SupabaseManager()
+
         # Check folder struktur
         web_dir = os.path.join(BASE_DIR, "web")
         if not os.path.exists(web_dir):
@@ -688,7 +664,7 @@ def main():
             try:
                 print(f"Trying port {port}...")
                 eel.start(
-                    "index.html",
+                    "login.html",
                     port=port,
                     **browser_opts
                 )
@@ -705,7 +681,7 @@ def main():
                 print("[!] Chrome tidak ditemukan, menggunakan browser default...")
                 try:
                     eel.start(
-                        "index.html",
+                        "login.html",
                         port=port,
                         mode=None,  # Browser default
                         host="localhost",

@@ -163,6 +163,28 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Stock Movement Monitoring -->
+                    <div class="card">
+                        <h3 class="card-title">
+                            <i class="fas fa-arrows-rotate card-icon-primary"></i>
+                            Pergerakan Stok
+                        </h3>
+                        <div class="metrics-list">
+                            <div class="metric-row">
+                                <span class="metric-label">Total Penjualan Kemarin</span>
+                                <span id="metric-actual-sales" class="metric-value-success">0 Tabung</span>
+                            </div>
+                            <div class="metric-row">
+                                <span class="metric-label">Terjual Dilaporkan Kemarin</span>
+                                <span id="metric-restock-detected" class="metric-value-primary">0 Tabung</span>
+                            </div>
+                            <div class="metric-row">
+                                <span class="metric-label">Penjualan Tidak Tercatat</span>
+                                <span id="metric-accounts-movement" class="metric-value-bold">0 Tabung</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Error Tracking (if errors exist) -->
@@ -199,17 +221,17 @@
 
                     <div class="automation-control-grid mb-4">
                         <div class="form-group form-group-zero-margin">
-                            <label class="form-label">File Excel Akun</label>
+                            <label class="form-label">Sumber Data Akun</label>
                             <div class="flex items-center gap-2">
-                                <input type="file" id="excel-file-input" accept=".xlsx, .xls" class="file-input-hidden"
-                                    onchange="handleFileSelect(this)" />
-                                <button class="btn btn-primary btn-sm"
-                                    onclick="document.getElementById('excel-file-input').click()">
-                                    <i class="fas fa-folder-open"></i> Pilih
-                                    File
+
+                                <button class="btn btn-primary btn-sm" onclick="loadFromDatabase()">
+                                    <i class="fas fa-database"></i> Semua Akun
                                 </button>
-                                <span id="selected-filename" class="text-sm text-muted truncate filename-text">Belum ada
-                                    file</span>
+                                <button class="btn btn-success btn-sm" onclick="loadUnprocessedAccounts()">
+                                    <i class="fas fa-sync"></i> Belum Dicek Hari Ini
+                                </button>
+                                <span id="selected-filename" class="text-sm text-muted truncate filename-text">Klik
+                                    untuk memuat data</span>
                             </div>
                         </div>
                         <div class="form-group form-group-zero-margin">

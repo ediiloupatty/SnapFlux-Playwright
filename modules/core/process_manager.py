@@ -23,7 +23,7 @@ class ProcessManager:
     Dapat digunakan oleh GUI maupun CLI.
     """
     
-    def __init__(self, callbacks=None):
+    def __init__(self, callbacks=None, supabase_client=None):
         """
         Inisialisasi ProcessManager
         
@@ -33,8 +33,10 @@ class ProcessManager:
                 - on_progress(current, total, percent)
                 - on_account_status(account_id, status, progress)
                 - on_result(result_data)
+            supabase_client: Instance SupabaseManager untuk update database
         """
         self.callbacks = callbacks or {}
+        self.supabase_client = supabase_client
         self.stop_requested = False
         self.pause_requested = False
         self.logger = logging.getLogger("process_manager")
@@ -176,7 +178,22 @@ class ProcessManager:
                 self._log(f"Login untuk {nama}...", "info")
                 
                 self.telemetry.start_operation("login", username)
-                success, gagal_info = login_direct(page, username, pin)
+                
+                # Retry mechanism for login
+                max_retries = 1
+                success = False
+                gagal_info = {}
+                
+                for attempt in range(max_retries + 1):
+                    if attempt > 0:
+                        self._log(f"Login gagal, mencoba ulang proses login untuk {nama}...", "warning")
+                        time.sleep(2.0)
+                        
+                    success, gagal_info = login_direct(page, username, pin)
+                    
+                    if success:
+                        break
+                
                 self.telemetry.end_operation("login", username)
                 
                 if not success:
@@ -268,6 +285,14 @@ class ProcessManager:
                     "status": status
                 })
                 self.telemetry.record_business_metrics(stok_int, terjual_int)
+                
+                # Update Supabase if client exists
+                if self.supabase_client:
+                    self._log(f"Updating database untuk {username}...", "info")
+                    if self.supabase_client.update_account_result(username, stok_formatted, tabung_formatted, status):
+                        self._log("Database updated", "success")
+                    else:
+                        self._log("Gagal update database", "warning")
                 
                 # Call callback for result
                 if self.callbacks.get("on_result"):
