@@ -1078,6 +1078,14 @@ async function refreshMonitoringMetrics() {
         "metric-actual-sales",
         movement.total_sales_yesterday || 0,
       );
+
+      // Update Stock Movement (Penjualan Tak Tercatat/Selisih) dari Backend
+      // Backend sudah menangani logika stok 0 dll agar tidak error
+      const unreported = movement.unreported_sales || 0;
+      updateElementWithTransition(
+        "metric-stock-movement",
+        unreported > 0 ? `+${unreported}` : `${unreported}`
+      );
     }
 
     // Get stock yesterday from database
@@ -1096,17 +1104,6 @@ async function refreshMonitoringMetrics() {
         const stockYesterday = yesterdayData.total_stock || 0;
 
         updateElementWithTransition("metric-stock-yesterday", stockYesterday);
-
-        // Calculate stock movement
-        const stockToday = parseInt(
-          document.getElementById("metric-total-stock")?.textContent || "0",
-        );
-        const stockMovement = stockToday - stockYesterday;
-
-        updateElementWithTransition(
-          "metric-stock-movement",
-          stockMovement >= 0 ? `+${stockMovement}` : `${stockMovement}`,
-        );
       }
     } catch (e) {
       console.error("Error fetching yesterday stock:", e);

@@ -525,6 +525,10 @@ class SupabaseManager:
                     yesterday_stock = int(yesterday_stock_str)
                     today_stock = int(today_stock_str)
 
+                    # Jika data kemarin 0 atau kosong, skip (karena tidak ada pembanding valid)
+                    if yesterday_stock == 0:
+                        continue
+
                     # Parse reported sales (tabung_terjual) from yesterday
                     reported_str = (
                         str(last_check_yesterday.get("tabung_terjual", "0"))
@@ -533,19 +537,22 @@ class SupabaseManager:
                     )
                     reported_sales = int(reported_str)
 
-                    # Calculate stock difference (overnight sales not recorded)
-                    stock_diff = yesterday_stock - today_stock
-
-                    if stock_diff >= 0:
-                        # Stock diff is the unreported sales (sold after last check yesterday)
+                    # Calculate stock difference
+                    # Jika stok TURUN (Yesterday > Today), selisihnya adalah penjualan tambahan (unreported)
+                    if yesterday_stock > today_stock:
+                        stock_diff = yesterday_stock - today_stock
                         unreported = stock_diff
+                    else:
+                        # Jika stok NAIK atau SAMA (Yesterday <= Today), berarti ada Restock atau tidak ada penjualan malam
+                        # Tidak ada "penjualan tak tercatat" dalam kasus ini
+                        unreported = 0
 
-                        # Total sales yesterday = reported + unreported
-                        total_yesterday = reported_sales + unreported
+                    # Total sales yesterday = reported + unreported
+                    total_yesterday = reported_sales + unreported
 
-                        total_sales_yesterday += total_yesterday
-                        total_reported_yesterday += reported_sales
-                        total_unreported += unreported
+                    total_sales_yesterday += total_yesterday
+                    total_reported_yesterday += reported_sales
+                    total_unreported += unreported
 
                 except Exception as e:
                     self.logger.error(
