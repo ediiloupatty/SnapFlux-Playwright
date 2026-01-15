@@ -571,39 +571,64 @@ class SupabaseManager:
         """
         Add a new account to the database.
         Data dict should contain: nama, username, pin, pangkalan_id, company_id
+        Returns: (success, message)
         """
         if not self.is_connected:
-            return False
+            return False, "Tidak ada koneksi ke database"
 
         username = data.get("username")
+        pangkalan_id = data.get("pangkalan_id")
+        
         try:
             # Check if username exists
-            existing = (
+            existing_user = (
                 self.client.table("accounts")
                 .select("id")
                 .eq("username", username)
                 .execute()
             )
-            if existing.data:
+            if existing_user.data:
                 self.logger.warning(f"Account {username} already exists")
-                return False
+                return False, f"Username '{username}' sudah terdaftar"
+
+            # Check if pangkalan_id exists (optional validation if unique is required)
+            if pangkalan_id:
+                existing_pangkalan = (
+                    self.client.table("accounts")
+                    .select("id")
+                    .eq("pangkalan_id", pangkalan_id)
+                    .execute()
+                )
+                if existing_pangkalan.data:
+                    self.logger.warning(f"Pangkalan ID {pangkalan_id} already exists")
+                    return False, f"ID Pangkalan '{pangkalan_id}' sudah terdaftar pada akun lain"
 
             # Insert new account
             insert_data = {
                 "nama": data.get("nama"),
                 "username": username,
                 "pin": data.get("pin"),
-                "pangkalan_id": data.get("pangkalan_id"),
+                "pangkalan_id": pangkalan_id,
                 "status": "active",
                 "company_id": data.get("company_id"),
             }
 
             self.client.table("accounts").insert(insert_data).execute()
             self.logger.info(f"Successfully added account: {username}")
-            return True
+            return True, "Berhasil menambahkan akun"
+            
         except Exception as e:
-            self.logger.error(f"Error adding account {username}: {str(e)}")
-            return False
+            error_msg = str(e)
+            self.logger.error(f"Error adding account {username}: {error_msg}")
+            
+            # Try to catch specific Supabase/Postgres errors if message is generic
+            if "duplicate key value" in error_msg:
+                if "username" in error_msg:
+                    return False, "Username sudah digunakan"
+                if "pangkalan_id" in error_msg:
+                    return False, "ID Pangkalan sudah digunakan"
+            
+            return False, f"Gagal menyimpan ke database: {error_msg}"
 
     def get_stock_summary_by_date(self, company_filter=None, date_str=None):
         """

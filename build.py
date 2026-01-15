@@ -50,6 +50,13 @@ def build():
         "--hidden-import", "logging.handlers",
         "--hidden-import", "pandas",
         "--hidden-import", "numpy",
+        "--hidden-import", "supabase",
+        "--hidden-import", "postgrest",
+        "--hidden-import", "gotrue",
+        "--hidden-import", "realtime",
+        "--hidden-import", "storage3",
+        "--hidden-import", "httpx",
+        "--hidden-import", "httpcore",
         "main_gui.py"
     ]
 

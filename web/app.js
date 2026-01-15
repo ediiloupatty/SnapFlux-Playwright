@@ -862,16 +862,16 @@ function createMonitoringRow(item, index) {
   const createdAt = item.created_at ? new Date(item.created_at) : null;
   const timeStr = createdAt
     ? createdAt.toLocaleTimeString("id-ID", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      })
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    })
     : "-";
   const dateStr = createdAt
     ? createdAt.toLocaleDateString("id-ID", {
-        day: "2-digit",
-        month: "short",
-      })
+      day: "2-digit",
+      month: "short",
+    })
     : "-";
 
   const statusIcon = (item.status || "").includes("Ada Penjualan")
@@ -1895,8 +1895,27 @@ async function openResultsFolder() {
 
 async function saveResultsAs() {
   try {
-    logMessage("💾 Memulai proses Simpan Sebagai...", "info");
-    const result = await eel.save_results_as()();
+    logMessage("💾 Memulai proses Simpan dari Database...", "info");
+
+    // Get company_id from logged in user
+    const userStr = localStorage.getItem("snapflux_user");
+    let companyId = null;
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        companyId = user.company_id;
+      } catch (e) {
+        console.error("Error parsing user data", e);
+      }
+    }
+
+    // Get date filter from monitoring page or use today's date
+    const dateFilterEl = document.getElementById("monitoring-date-filter");
+    const dateFilter = dateFilterEl ? dateFilterEl.value : new Date().toISOString().split('T')[0];
+
+    console.log("[DEBUG] Calling save_results_as with:", { companyId, dateFilter });
+
+    const result = await eel.save_results_as(companyId, dateFilter)();
 
     if (result.success) {
       if (result.data) {
@@ -1907,7 +1926,7 @@ async function saveResultsAs() {
         }
         const byteArray = new Uint8Array(byteNumbers);
         const blob = new Blob([byteArray], {
-          type: "text/csv",
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         });
 
         if ("showSaveFilePicker" in window) {
@@ -1916,9 +1935,9 @@ async function saveResultsAs() {
               suggestedName: result.filename,
               types: [
                 {
-                  description: "CSV Files",
+                  description: "Excel Files",
                   accept: {
-                    "text/csv": [".csv"],
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
                   },
                 },
               ],
@@ -1926,7 +1945,7 @@ async function saveResultsAs() {
             const writable = await handle.createWritable();
             await writable.write(blob);
             await writable.close();
-            logMessage(`File berhasil disimpan: ${handle.name}`, "success");
+            logMessage(`✅ File berhasil disimpan: ${handle.name}`, "success");
             showAlert(
               `File berhasil disimpan sebagai ${handle.name}`,
               "success",
@@ -1955,7 +1974,7 @@ async function saveResultsAs() {
         setTimeout(() => {
           window.URL.revokeObjectURL(url);
           document.body.removeChild(a);
-          logMessage(`File berhasil diunduh: ${result.filename}`, "success");
+          logMessage(`✅ File berhasil diunduh: ${result.filename}`, "success");
         }, 100);
       } else {
         logMessage(`${result.message}`, "success");
@@ -1965,14 +1984,14 @@ async function saveResultsAs() {
       if (result.message === "Cancelled") {
         logMessage("Penyimpanan dibatalkan", "warning");
       } else {
-        logMessage(`${result.message}`, "error");
-        alert(`Gagal menyimpan: ${result.message}`);
+        logMessage(`❌ ${result.message}`, "error");
+        showAlert(`Gagal menyimpan: ${result.message}`, "warning");
       }
     }
   } catch (error) {
     console.error("Error saving results:", error);
-    logMessage("Gagal menyimpan file", "error");
-    alert("Error: " + error);
+    logMessage("❌ Gagal menyimpan file", "error");
+    showAlert("Error: " + error, "error");
   }
 }
 

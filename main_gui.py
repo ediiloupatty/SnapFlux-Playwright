@@ -55,10 +55,6 @@ process_manager_instance = None
 supabase_manager = None
 
 
-# Global variables untuk menyimpan hasil
-automation_results = []
-automation_export_date = None
-
 # Initialize telemetry manager
 telemetry_manager = get_telemetry_manager()
 
@@ -351,9 +347,10 @@ def stop_automation():
 
 def run_automation_background(accounts, settings):
     """
-    Fungsi background untuk menjalankan automation menggunakan ProcessManager
+    Fungsi background untuk menjalankan automation menggunakan ProcessManager.
+    Hasil disimpan langsung ke database Supabase.
     """
-    global process_manager_instance, automation_results, automation_export_date
+    global process_manager_instance
 
     try:
         # Define callbacks
@@ -361,27 +358,16 @@ def run_automation_background(accounts, settings):
             "on_log": eel.log_message,
             "on_progress": eel.update_overall_progress,
             "on_account_status": eel.update_account_status,
-            "on_result": lambda res: None,  # We handle results in bulk at the end or via global list
+            "on_result": lambda res: None,
         }
 
-        # Initialize Manager
+        # Initialize Manager with Supabase client for direct database storage
         process_manager_instance = ProcessManager(
             callbacks, supabase_client=supabase_manager
         )
 
-        # Prepare global results
-        if not automation_results:
-            automation_results = []
-
-        automation_export_date = (
-            settings.get("date_obj") if settings.get("date_obj") else datetime.now()
-        )
-
-        # Run Process
+        # Run Process - results are saved directly to database
         results = process_manager_instance.run(accounts, settings)
-
-        # Update global results
-        automation_results.extend(results)
 
         # Completion event
         eel.automation_completed(len(results), len(accounts))
@@ -394,60 +380,81 @@ def run_automation_background(accounts, settings):
         process_manager_instance = None
 
 
-@eel.expose
-def export_to_excel():
-    """
-    Export hasil automation ke Excel
-
-    Returns:
-        dict: {"success": bool, "filepath": str, "message": str}
-    """
-    global automation_results, automation_export_date
-
-    try:
-        if not automation_results:
-            return {
-                "success": False,
-                "filepath": "",
-                "message": "Tidak ada data untuk di-export",
-            }
-
-        # Export ke Excel
-        export_date = (
-            automation_export_date if automation_export_date else datetime.now()
-        )
-        filepath = export_results_to_excel(automation_results, export_date)
-
-        # Get absolute path
-        abs_path = os.path.abspath(filepath)
-
-        return {
-            "success": True,
-            "filepath": abs_path,
-            "message": f"Berhasil export {len(automation_results)} data ke Excel",
-        }
-
-    except Exception as e:
-        logger.error(f"Error exporting to Excel: {str(e)}", exc_info=True)
-        return {"success": False, "filepath": "", "message": f"Error: {str(e)}"}
-
 
 @eel.expose
-def save_results_as():
+def save_results_as(company_id=None, date_filter=None):
     """
-    Simpan hasil automation dengan mengembalikan base64 string
+    Simpan hasil automation dari database dengan mengembalikan base64 string
     agar browser bisa menangani dialog save/download.
-    Menghindari masalah threading dengan Tkinter.
+    
+    Args:
+        company_id (int): Company ID untuk filter data (dari user yang login)
+        date_filter (str): Filter tanggal dalam format YYYY-MM-DD (default: hari ini)
     """
-    global automation_results, automation_export_date
+    global supabase_manager
 
     try:
-        if not automation_results:
-            return {"success": False, "message": "Tidak ada data untuk disimpan"}
+        # Initialize supabase if needed
+        if not supabase_manager:
+            supabase_manager = SupabaseManager()
+        
+        # Default date filter ke hari ini jika tidak diberikan
+        if not date_filter:
+            date_filter = datetime.now().strftime("%Y-%m-%d")
+        
+        logger.info(f"[DEBUG] save_results_as called with company_id={company_id}, date_filter={date_filter}")
+        
+        # Ambil data dari database
+        db_results = supabase_manager.get_automation_results(
+            company_filter=company_id,
+            limit=1000,  # Ambil semua data untuk tanggal tersebut
+            date_filter=date_filter
+        )
+        
+        if not db_results:
+            return {"success": False, "message": f"Tidak ada data untuk tanggal {date_filter}"}
+        
+        logger.info(f"[DEBUG] Fetched {len(db_results)} results from database")
+        
+        # Filter duplicate results: Keep only the latest entry per account
+        # Because db_results is already sorted by created_at DESC from the query (get_automation_results)
+        # We can just iterate and pick the first occurrence of each unique account
+        
+        unique_accounts = {}
+        export_data = []
+        
+        for item in db_results:
+            # Use pangkalan_id as primary key, or fallback to nama/username
+            # This ensures if we check "Pangkalan A" in the morning and evening,
+            # only the evening one (latest) appears in the export.
+            
+            p_id = item.get("pangkalan_id", "")
+            nama = item.get("nama", "")
+            
+            # Key unik kombinasi ID dan Nama
+            unique_key = f"{p_id}_{nama}"
+            
+            if unique_key not in unique_accounts:
+                unique_accounts[unique_key] = True
+                
+                export_data.append({
+                    "nama": nama,  # Field di database adalah 'nama'
+                    "pangkalan_id": p_id,
+                    "username": item.get("username", ""),
+                    "stok": item.get("stok", "0"),
+                    "tabung_terjual": item.get("tabung_terjual", "0"),
+                    "status": item.get("status", ""),
+                    "created_at": item.get("created_at", ""),
+                })
+
+        # Sort berdasarkan nama pangkalan (A-Z)
+        export_data.sort(key=lambda x: (x.get("nama", "") or "").upper())
+        
+        logger.info(f"[DEBUG] Data sorted alphabetically by nama (A-Z)")
 
         # Generate default filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"SnapFlux_Daily_{timestamp}.xlsx"
+        filename = f"SnapFlux_Daily_{date_filter}_{timestamp}.xlsx"
 
         # Use a temp directory
         temp_dir = os.path.join(DATA_DIR, "temp_export")
@@ -455,12 +462,10 @@ def save_results_as():
         temp_filepath = os.path.join(temp_dir, filename)
 
         # Export ke temp file
-        export_date = (
-            automation_export_date if automation_export_date else datetime.now()
-        )
+        export_date = datetime.strptime(date_filter, "%Y-%m-%d")
 
         saved_path = export_results_to_excel(
-            automation_results, export_date, custom_filepath=temp_filepath
+            export_data, export_date, custom_filepath=temp_filepath
         )
 
         # Read file and convert to base64
@@ -475,11 +480,13 @@ def save_results_as():
         except:
             pass
 
+        logger.info(f"[DEBUG] Successfully exported {len(export_data)} records to Excel")
+
         return {
             "success": True,
             "data": base64_content,
             "filename": filename,
-            "message": "File siap disimpan",
+            "message": f"File siap disimpan ({len(export_data)} data)",
         }
 
     except Exception as e:
@@ -520,17 +527,6 @@ def open_export_folder():
         return {"success": False, "message": f"Error: {str(e)}"}
 
 
-@eel.expose
-def get_export_ready_status():
-    """
-    Cek apakah ada data yang siap di-export
-
-    Returns:
-        dict: {"ready": bool, "count": int}
-    """
-    global automation_results
-
-    return {"ready": len(automation_results) > 0, "count": len(automation_results)}
 
 
 @eel.expose
@@ -630,13 +626,6 @@ def save_telemetry_report():
         return {"success": False, "filepath": "", "message": f"Error: {str(e)}"}
 
 
-@eel.expose
-def clear_results():
-    """Clear stored automation results"""
-    global automation_results
-    automation_results = []
-    return {"success": True, "message": "Data hasil dibersihkan"}
-
 
 @eel.expose
 def get_monitoring_results(company_access=None, limit=100, date_filter=None):
@@ -713,7 +702,8 @@ def add_new_account(data):
                 return {"success": False, "message": f"Field '{field}' wajib diisi!"}
 
         # Add account
-        success = supabase_manager.add_account(data)
+        # Add account
+        success, msg = supabase_manager.add_account(data)
 
         if success:
             logger.info(
@@ -724,10 +714,10 @@ def add_new_account(data):
                 "message": f"Akun '{data.get('nama')}' berhasil ditambahkan ke database!",
             }
         else:
-            logger.warning(f"[DEBUG GUI] Failed to add account {data.get('username')}")
+            logger.warning(f"[DEBUG GUI] Failed to add account {data.get('username')}: {msg}")
             return {
                 "success": False,
-                "message": "Gagal menambahkan akun. Username mungkin sudah terdaftar.",
+                "message": msg,
             }
 
     except Exception as e:
