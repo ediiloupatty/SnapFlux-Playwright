@@ -12,6 +12,39 @@ let currentAccountIndex = 0;
 let totalAccounts = 0;
 
 // ============================================
+// DASHBOARD REFRESH CONTROL (event-driven + throttle)
+// ============================================
+//
+// Used by Python callbacks (e.g. account finished) to refresh dashboard metrics
+// without hammering database/API.
+let dashboardRefreshInterval = null;
+let dashboardRefreshTimeout = null;
+let lastDashboardMetricsRefreshAt = 0;
+
+// User requested 10–13s throttle; we use 12s.
+const DASHBOARD_REFRESH_THROTTLE_MS = 12000;
+const DASHBOARD_REFRESH_FALLBACK_MS = 120000;
+
+function scheduleDashboardMetricsRefresh(reason = "event") {
+  const now = Date.now();
+  const elapsed = now - lastDashboardMetricsRefreshAt;
+
+  if (elapsed >= DASHBOARD_REFRESH_THROTTLE_MS) {
+    lastDashboardMetricsRefreshAt = now;
+    updateDashboardMetrics();
+    return;
+  }
+
+  if (dashboardRefreshTimeout) return;
+  const wait = Math.max(0, DASHBOARD_REFRESH_THROTTLE_MS - elapsed);
+  dashboardRefreshTimeout = setTimeout(() => {
+    dashboardRefreshTimeout = null;
+    lastDashboardMetricsRefreshAt = Date.now();
+    updateDashboardMetrics();
+  }, wait);
+}
+
+// ============================================
 // MODERN ALERT HELPERS
 // ============================================
 
@@ -1613,8 +1646,11 @@ function update_account_status(accountId, status, progress) {
 
   updateStatistics();
 
-  // Update dashboard metrics in real-time
-  updateDashboardMetrics();
+  // Event-driven dashboard refresh:
+  // Only refresh when an account finishes (success/fail), not on every progress tick.
+  if (status === "done" || status === "error") {
+    scheduleDashboardMetricsRefresh(`account_${status}`);
+  }
 }
 
 eel.expose(update_overall_progress);
@@ -2204,8 +2240,6 @@ if ("Notification" in window && Notification.permission !== "granted") {
 // DASHBOARD METRICS & MONITORING
 // ============================================
 
-let dashboardRefreshInterval = null;
-
 async function updateDashboardMetrics() {
   try {
     // Check if we're on monitoring page, use different refresh
@@ -2448,17 +2482,24 @@ function formatDuration(seconds) {
 }
 
 function startDashboardRefresh() {
-  // Update immediately
-  updateDashboardMetrics();
+  // Update immediately (but still going through scheduler to respect throttle state)
+  scheduleDashboardMetricsRefresh("start");
 
-  // Then update every 2 seconds
-  dashboardRefreshInterval = setInterval(updateDashboardMetrics, 2000);
+  // Safety net refresh (low frequency) in case events are missed
+  if (dashboardRefreshInterval) clearInterval(dashboardRefreshInterval);
+  dashboardRefreshInterval = setInterval(() => {
+    scheduleDashboardMetricsRefresh("fallback");
+  }, DASHBOARD_REFRESH_FALLBACK_MS);
 }
 
 function stopDashboardRefresh() {
   if (dashboardRefreshInterval) {
     clearInterval(dashboardRefreshInterval);
     dashboardRefreshInterval = null;
+  }
+  if (dashboardRefreshTimeout) {
+    clearTimeout(dashboardRefreshTimeout);
+    dashboardRefreshTimeout = null;
   }
 }
 
