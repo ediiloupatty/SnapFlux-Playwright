@@ -173,6 +173,7 @@ def click_rekap_penjualan_direct(page: Page) -> bool:
 
         # Coba berbagai selector untuk Rekap Penjualan
         rekap_selectors = [
+            ".mantine-Text-root:has-text('Rekap Penjualan')",
             "text=Rekap Penjualan",
             "a:has-text('Rekap Penjualan')",
             "button:has-text('Rekap Penjualan')",

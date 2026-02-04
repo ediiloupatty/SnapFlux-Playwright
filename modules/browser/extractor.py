@@ -529,3 +529,223 @@ def wait_for_data_load(page: Page, timeout: int = 10000) -> bool:
     except Exception as e:
         print(f"⚠ Error menunggu data load: {str(e)}")
         return False
+
+def get_customer_list_from_cards(page: Page) -> List[Dict]:
+    """
+    Mengambil daftar customer (Simplified).
+    Hanya scroll sekali ke bawah lalu ambil customer menggunakan selector 'div.mantine-hpmcve'
+    """
+    print("Mengekstrak daftar customer (Simple Scroll)...")
+    customers = []
+    
+    try:
+        # 1. Simple Scroll to Bottom
+        page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+        time.sleep(3.0) # Tunggu load
+        
+        # 2. Ambil data dengan selector wrapper spesifik
+        # div.mantine-Paper-root ternyata membungkus banyak item
+        # div.mantine-hpmcve adalah wrapper per item (Nama + Button)
+        
+        cards = page.locator("div.mantine-hpmcve").all()
+        
+        # Jika selector aneh itu tidak ketemu, coba fallback ke yang mengandung text ciri khas
+        if not cards:
+             print("Selector .mantine-hpmcve tidak ketemu, mencoba fallback...")
+             # Cari elemen yang memiliki text 'Jenis Pelanggan' tapi bukan container besar
+             # Agak tricky, kita stick ke hpmcve dulu sesuai request user sebelumnya
+        
+        print(f"Total kartu customer ditemukan: {len(cards)}")
+        
+        for idx, card in enumerate(cards):
+            try:
+                text = card.text_content()
+                if not text: continue
+                
+                # Parsing Nama
+                # Struktur text biasanya: "RICHARD F LANTU710xxxxxxxxxx0011 Jenis Pelanggan..."
+                # Kita coba split berdasarkan NIK (16 digit)
+                
+                import re
+                
+                nama = "Unknown"
+                nik = ""
+                
+                # Cari NIK
+                nik_match = re.search(r"\b\d{16}\b", text)
+                if nik_match:
+                    nik = nik_match.group(0)
+                    # Nama biasanya ada sebelum NIK
+                    # Ambil text sebelum NIK
+                    pre_nik = text.split(nik)[0].strip()
+                    # Bersihkan jika ada newline
+                    lines = [l.strip() for l in pre_nik.split('\n') if l.strip()]
+                    if lines:
+                        nama = lines[-1] # Ambil yang paling bawah dari blok atas (paling dekat NIK)
+                else:
+                    # Fallback simple
+                    lines = [l.strip() for l in text.split('\n') if l.strip()]
+                    if lines: nama = lines[0]
+                
+                customers.append({"no": idx+1, "nama": nama, "nik": nik})
+            except: 
+                continue
+                
+        if customers:
+            first = customers[0]
+            last = customers[-1]
+            print(f"Customer Pertama : {first['nama']} ({first['nik']})")
+            print(f"Customer Terakhir: {last['nama']} ({last['nik']})")
+            
+        return customers
+
+    except Exception as e:
+        print(f"Error list extraction: {e}")
+        return []
+
+
+def click_last_customer_card(page: Page) -> bool:
+    """
+    Scroll ke paling bawah dan klik customer terakhir.
+    Target: div.mantine-hpmcve (Wrapper nama & NIK)
+    """
+    print("Mencari customer paling bawah untuk diklik (Target: .mantine-hpmcve)...")
+    try:
+        # 1. Scroll Paling Bawah
+        print("Scrolling ke bawah page...")
+        page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+        time.sleep(2.0)
+        
+        # 2. Cari elemen spesifik (mantine-hpmcve)
+        # Ini adalah wrapper yang berisi Nama dan NIK
+        targets = page.locator("div.mantine-hpmcve").all()
+        
+        if not targets:
+            print("⚠ Tidak ditemukan elemen 'div.mantine-hpmcve'. Mencoba mencari kartu biasa...")
+            # Fallback ke paper root jika selector spesifik ini gagal (misal class berubah)
+            cards = page.locator("div.mantine-Paper-root").all()
+            if cards:
+                last_card = cards[-1]
+                last_card.scroll_into_view_if_needed()
+                last_card.click(force=True)
+                print("✓ Fallback Clicked last Paper-root")
+                return True
+            return False
+            
+        # Ambil yang terakhir
+        last_target = targets[-1]
+        
+        # Logging text untuk konfirmasi
+        print(f"Target klik ditemukan (Text: {last_target.text_content()})")
+        
+        # Scroll & Click
+        last_target.scroll_into_view_if_needed()
+        time.sleep(1.0)
+        
+        # Klik langsung pada wrapper tersebut
+        print("Mengklik elemen .mantine-hpmcve terakhir...")
+        last_target.click(force=True)
+        time.sleep(2.0)
+        
+        print("✓ Berhasil klik customer terakhir!")
+        return True
+        
+    except Exception as e:
+        print(f"Error clicking last customer: {e}")
+        return False
+
+def click_first_customer_card(page: Page) -> bool:
+    """
+    Klik customer pertama di list.
+    Target: div.mantine-hpmcve pertama.
+    """
+    print("Mencari customer PERTAMA untuk diklik...")
+    try:
+        # Import re for validation if needed
+        import re
+
+        # 1. Pastikan di top page
+        # page.evaluate("window.scrollTo(0, 0)")
+        # time.sleep(1.0)
+        
+        # 2. Cari elemen spesifik (mantine-hpmcve)
+        targets = page.locator("div.mantine-hpmcve").all()
+        
+        first_target = None
+        
+        if targets:
+            for t in targets:
+                txt = t.text_content() or ""
+                # Skip elemen sorting header
+                if "Mengurutkan" in txt or "Filter" in txt:
+                    continue
+                
+                # Validasi: Pastikan ada NIK (16 digit) agar yakin ini customer
+                if re.search(r"\d{16}", txt):
+                    first_target = t
+                    break
+            
+            # Fallback: Jika tidak ada yang match NIK, ambil elemen kedua (index 1) 
+            # karena index 0 biasanya sort button
+            if not first_target and len(targets) > 1:
+                first_target = targets[1]
+                print("⚠ Mengambil target index 1 sebagai fallback (index 0 dianggap sort)")
+        
+        if not first_target:
+            # Fallback ke paper root
+            cards = page.locator("div.mantine-Paper-root").all()
+            if cards:
+                cards[0].scroll_into_view_if_needed()
+                cards[0].click(force=True)
+                print("✓ Fallback Clicked first Paper-root")
+                return True
+            return False
+            
+        print(f"Target klik ditemukan (Text: {first_target.text_content()})")
+        
+        first_target.scroll_into_view_if_needed()
+        time.sleep(0.5)
+        first_target.click(force=True)
+        time.sleep(2.0)
+        
+        print("✓ Berhasil klik customer PERTAMA!")
+        return True
+        
+    except Exception as e:
+        print(f"Error clicking first customer: {e}")
+        return False
+
+def get_transaction_timestamp(page: Page) -> str:
+    """
+    Mengambil timestamp detail transaksi dari halaman detail customer.
+    User Selector: <div class="mantine-Text-root mantine-1ic1mzf">30 Jan 2026 · 06:17</div>
+    """
+    print("Mengekstrak timestamp transaksi...")
+    try:
+        page.wait_for_selector("div.mantine-Text-root", timeout=5000)
+        
+        # Cari elemen yang text-nya mengandung format tanggal
+        # Format: "DD Mon YYYY · HH:MM"
+        
+        # Cara 1: Selector spesifik user (tapi class hash mungkin ganti)
+        # .mantine-1ic1mzf
+        
+        # Cara 2: Regex search di semua text element (Lebih robust)
+        import re
+        timestamp_pattern = r"\d{1,2}\s+[A-Za-z]{3}\s+\d{4}\s*·\s*\d{2}:\d{2}"
+        
+        elements = page.locator("div.mantine-Text-root").all()
+        for el in elements:
+            if not el.is_visible(): continue
+            text = el.text_content()
+            if text and re.search(timestamp_pattern, text):
+                clean_time = re.search(timestamp_pattern, text).group(0)
+                print(f"✓ Timestamp ditemukan: {clean_time}")
+                return clean_time
+                
+        print("Timestamp tidak ditemukan dengan regex, mencoba ambil semua text...")
+        return "Not Found"
+        
+    except Exception as e:
+        print(f"Error getting timestamp: {e}")
+        return "Error"
