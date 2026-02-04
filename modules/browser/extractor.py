@@ -47,7 +47,7 @@ def get_stock_value_direct(page: Page) -> Optional[str]:
         except:
             pass
             
-        time.sleep(3.0) # Tambahan sleep untuk memastikan rendering selesai
+        time.sleep(0.8) # Tambahan sleep untuk memastikan rendering selesai
 
         import re
 
@@ -181,7 +181,7 @@ def get_tabung_terjual_direct(page: Page) -> Optional[int]:
             print(f"   Percobaan ekstraksi ke-{attempt + 1}...")
 
             # Tunggu halaman stabil
-            time.sleep(2.0)
+            time.sleep(0.5)
 
             import re
 
@@ -541,7 +541,7 @@ def get_customer_list_from_cards(page: Page) -> List[Dict]:
     try:
         # 1. Simple Scroll to Bottom
         page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-        time.sleep(3.0) # Tunggu load
+        time.sleep(1.0) # Tunggu load
         
         # 2. Ambil data dengan selector wrapper spesifik
         # div.mantine-Paper-root ternyata membungkus banyak item
@@ -614,7 +614,7 @@ def click_last_customer_card(page: Page) -> bool:
         # 1. Scroll Paling Bawah
         print("Scrolling ke bawah page...")
         page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-        time.sleep(2.0)
+        time.sleep(0.5)
         
         # 2. Cari elemen spesifik (mantine-hpmcve)
         # Ini adalah wrapper yang berisi Nama dan NIK
@@ -640,12 +640,12 @@ def click_last_customer_card(page: Page) -> bool:
         
         # Scroll & Click
         last_target.scroll_into_view_if_needed()
-        time.sleep(1.0)
+        time.sleep(0.2)
         
         # Klik langsung pada wrapper tersebut
         print("Mengklik elemen .mantine-hpmcve terakhir...")
         last_target.click(force=True)
-        time.sleep(2.0)
+        time.sleep(1.0)
         
         print("✓ Berhasil klik customer terakhir!")
         return True
@@ -704,9 +704,9 @@ def click_first_customer_card(page: Page) -> bool:
         print(f"Target klik ditemukan (Text: {first_target.text_content()})")
         
         first_target.scroll_into_view_if_needed()
-        time.sleep(0.5)
+        time.sleep(0.2)
         first_target.click(force=True)
-        time.sleep(2.0)
+        time.sleep(1.0)
         
         print("✓ Berhasil klik customer PERTAMA!")
         return True

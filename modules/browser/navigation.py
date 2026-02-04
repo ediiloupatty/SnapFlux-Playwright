@@ -41,7 +41,7 @@ def click_laporan_penjualan_direct(page: Page) -> bool:
 
     try:
         # Tunggu halaman stabil
-        time.sleep(2.0)
+        time.sleep(0.5)
 
         # Coba berbagai selector untuk menu Laporan Penjualan
         # Coba selector yang terbukti berhasil untuk menu Laporan Penjualan
@@ -81,7 +81,7 @@ def click_laporan_penjualan_direct(page: Page) -> bool:
                 print(f"   ✓ Elemen ditemukan, mengklik...")
                 menu_item.click(force=True)
                 print("✓ Menu Laporan Penjualan berhasil diklik")
-                time.sleep(2.0)
+                time.sleep(0.5)
                 return True
             except Exception as e:
                 print(f"   ✗ Selector gagal: {str(e)[:50]}")
@@ -169,7 +169,7 @@ def click_rekap_penjualan_direct(page: Page) -> bool:
 
     try:
         # Tunggu halaman stabil
-        time.sleep(1.0)
+        time.sleep(0.5)
 
         # Coba berbagai selector untuk Rekap Penjualan
         rekap_selectors = [
@@ -191,7 +191,7 @@ def click_rekap_penjualan_direct(page: Page) -> bool:
                         rekap_item.wait_for(state="visible", timeout=2000)
                         rekap_item.click()
                         print("✓ Rekap Penjualan berhasil diklik")
-                        time.sleep(1.5)
+                        time.sleep(0.5)
                         return True
                     except Exception:
                         continue

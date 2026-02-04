@@ -64,6 +64,7 @@ def save_to_csv(result_data, filename="results/model_scraping_results.csv"):
     print("-" * 50)
 
 def main():
+    start_time = time.time()
     print("============================================================")
     print("SNAPFLUX AUTOMATION - CLI VERSION")
     print("============================================================")
@@ -90,6 +91,8 @@ def main():
         if not page:
             print("[ERROR] Gagal setup browser!")
             return
+            
+
 
         # 3. Login
         print("\n[STEP 2] Login...")
@@ -131,7 +134,7 @@ def main():
                         print("[SUCCESS] Berhasil klik menu Rekap Penjualan")
                         
                         # --- TAMBAHAN BARU: List Customer & Klik Terakhir ---
-                        time.sleep(3) # Tunggu loading list
+                        time.sleep(1.0) # Tunggu loading list
                         customers = get_customer_list_from_cards(page)
                         print(f"[INFO] Total customer terdeteksi: {len(customers)}")
                         
@@ -146,7 +149,7 @@ def main():
                                 # Kembali ke list
                                 print("Navigasi kembali ke daftar customer...")
                                 page.go_back()
-                                time.sleep(3.0) # Wait reload
+                                time.sleep(1.5) # Wait reload
                                 
                                 # Aksi 2: Klik Customer Paling Atas
                                 if click_first_customer_card(page):
@@ -164,7 +167,7 @@ def main():
                                     
                                     # Kembali lagi (optional, untuk cleanup)
                                     page.go_back()
-                                    time.sleep(2.0)    # ----------------------------------------------------
+                                    time.sleep(0.5)    # ----------------------------------------------------
                                     
                                 else:
                                     print("[WARNING] Gagal klik menu Rekap Penjualan")
@@ -211,6 +214,12 @@ def main():
         if browser_manager:
             time.sleep(3) # Beri waktu sejenak untuk melihat hasil akhir
             browser_manager.close()
+
+        end_time = time.time()
+        duration = end_time - start_time
+        minutes = int(duration // 60)
+        seconds = int(duration % 60)
+        print(f"\n[INFO] Total Waktu Eksekusi: {minutes} menit {seconds} detik")
         print("Selesai.")
 
 if __name__ == "__main__":
